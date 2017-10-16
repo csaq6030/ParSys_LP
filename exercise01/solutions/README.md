@@ -66,6 +66,32 @@ omp for:			splits the work among available threads
 omp parallel for: 	combines both
 
 
+|           | avg OMP | 
+|-----------|---------| 
+| 10        |         | 
+| wall time | 0,00    | 
+| user time | 0,00    | 
+| sys time  | 0,00    | 
+| 100       |         | 
+| wall time | 0,001   | 
+| user time | 0,023   | 
+| sys time  | 0,00    | 
+| 500       |         | 
+| wall time | 0,552   | 
+| user time | 4,211   | 
+| sys time  | 0,001   | 
+| 1000      |         | 
+| wall time | 5,476   | 
+| user time | 42,313  | 
+| sys time  | 0,048   | 
+| 1500      |         | 
+| wall time | 21,662  | 
+| user time | 166,982 | 
+| sys time  | 0,219   | 
+
+
+
+
 method		prob size N		cpu time/s		binary size
 
 omp			10				0				44,7kB
