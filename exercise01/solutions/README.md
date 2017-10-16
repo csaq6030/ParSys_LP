@@ -34,25 +34,28 @@ Optimization 2:
 
 In the operator*, the most inner loop an (several n³) unnecessary access to the mat is done (exhaustive indexing). The result can be calculated in a temp var and stored into the right place after its calculation.
 
-method		prob size N		cpu time/s		binary size
-
-opt1		10				0				44,5kB
-			100				0,02
-			500				1,85
-			1000			19,54
-			2000			174,66
-
-opt2		10				0				38,4kB	
-			100				0
-			500				1,33
-			1000			16,96
-			2000			138
-
-opt1+2		10				0				44,5kB	
-			100				0
-			500				1,6
-			1000			15,06
-			2000			135,29
+|           | avg 1   | avg 12 | avg 2  | 
+|-----------|---------|--------|--------| 
+| 10        |         |        |        | 
+| wall time | 0,00    | 0,00   | 0,00   | 
+| user time | 0,00    | 0,00   | 0,00   | 
+| sys time  | 0,00    | 0,00   | 0,00   | 
+| 100       |         |        |        | 
+| wall time | 0,01    | 0,01   | 0,01   | 
+| user time | 0,00    | 0,00   | 0,00   | 
+| sys time  | 0,01    | 0,01   | 0,01   | 
+| 500       |         |        |        | 
+| wall time | 2.091   | 1,439  | 1,465  | 
+| user time | 2.082   | 1.432  | 1,456  | 
+| sys time  | 0,00    | 0,00   | 0,00   | 
+| 1000      |         |        |        | 
+| wall time | 26,118  | 19,448 | 18,351 | 
+| user time | 25,995  | 19,303 | 18,304 | 
+| sys time  | 0,053   | 0,03   | 0,025  | 
+| 1500      |         |        |        | 
+| wall time | 105,462 | 65,522 | 69,611 | 
+| user time | 105,252 | 65,442 | 69,52  | 
+| sys time  | 0,112   | 0,049  | 0,05   | 
 
 *Part 3*
 
