@@ -61,3 +61,12 @@ Study OpenMP parallel and for and attempt to parallelize the matrix multiplicati
 omp parallel: 		creates a team of N threads
 omp for:			splits the work among available threads
 omp parallel for: 	combines both
+
+
+method		prob size N		cpu time/s		binary size
+
+omp			10				0				44,7kB
+			100				0
+			500				1,32
+			1000			12,24
+			2000			85,59
