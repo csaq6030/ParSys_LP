@@ -28,7 +28,7 @@ Try out at least two methods of performing sequential optimization on this matri
 
 Optimization 1:
 
-In the constructor of the identity matrix the inner loop can be removed. The vector can be resized with a second parameter corresponding to the initialization value of the new elements (0s). Subsequently the 1s can be written. 
+In the constructor of the identity matrix the inner loop can be removed. The vector can be inicialized instead of being resized. Subsequently the 1s can be written. The value n is dacalred as a const. 
 
 Optimization 2:
 
