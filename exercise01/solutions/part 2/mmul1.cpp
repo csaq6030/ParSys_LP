@@ -5,11 +5,10 @@ using Matrix = std::vector<std::vector<double>>;
 
 // initializes a square identity matrix of size n x n
 Matrix id(unsigned n) {
-	Matrix res;
-	res.resize(n);
+    Matrix res = std::vector<std::vector<double>>(n, std::vector<double>(n));
 	for(unsigned i=0; i<n; i++) {
 		//resize by filling 0s to the vector, the position of the 1s in an identity already know -> remove 2nd iteration
-		res[i].resize(n,0);
+		//res[i].resize(n,0);
 		res[i][i] = 1;
 		/*
 		for(unsigned j=0; j<n; j++) {
@@ -22,10 +21,10 @@ Matrix id(unsigned n) {
 // computes the product of two matrices
 Matrix operator*(const Matrix& a, const Matrix& b) {
 	unsigned n = a.size();
-	Matrix c = id(n);
+	Matrix c = std::vector<std::vector<double>>(n, std::vector<double>(n));
 	for(unsigned i=0; i<n; ++i) {
 		for(unsigned j=0; j<n; ++j) {
-			c[i][j] = 0;
+			//c[i][j] = 0;
 			for(unsigned k=0; k<n; ++k) {
 				c[i][j] += a[i][k] * b[k][j];
 			}
