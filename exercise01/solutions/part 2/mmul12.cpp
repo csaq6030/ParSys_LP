@@ -21,7 +21,7 @@ Matrix id(const unsigned n) {
 // computes the product of two matrices
 Matrix operator*(const Matrix& a, const Matrix& b) {
 	const unsigned n = a.size();
-    // no id Matraxi needed
+    // no id Matrix needed
 	Matrix c = std::vector<std::vector<double>>(n, std::vector<double>(n));
 	// store result in tmp to reduce operator[] calls
 	double tmp = 0;
