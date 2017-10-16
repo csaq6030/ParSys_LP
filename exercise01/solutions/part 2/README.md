@@ -1,0 +1,1 @@
+Try out at least two methods of performing sequential optimization on this matrix multiplication program. For each of them, apply your benchmarking regimen and document your findings. Also try to explain the results you observe.
