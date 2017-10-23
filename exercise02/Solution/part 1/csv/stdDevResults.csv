@@ -1,3 +1,4 @@
+;wall time [s]; user mode cpu [s]; kernel mode [s]; major page fault; minor page fault; max resident set size [kbytes];avg resident set size [kbytes]
 mmulNested10;0.0;0.0;0.0;0.0;0.3;0.0;0.0
 mmulInd10;0.0;0.0;0.0;0.0;0.0;0.0;0.0
 mmulMulti10;0.0;0.0;0.0;0.0;0.0;0.0;0.0

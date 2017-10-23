@@ -1,3 +1,4 @@
+;wall time [s]; user mode cpu [s]; kernel mode [s]; major page fault; minor page fault; max resident set size [kbytes];avg resident set size [kbytes]
 mmulPar1000;0.466;1.7800000000000005;0.001;0.0;6036.5;27008.0;0.0
 mmulPar100;0.003;0.007000000000000001;0.0;0.0;208.5;3668.4;0.0
 mmulPar10;0.0;0.0;0.0;0.0;147.7;3421.2;0.0

@@ -1,3 +1,4 @@
+;wall time [s]; user mode cpu [s]; kernel mode [s]; major page fault; minor page fault; max resident set size [kbytes];avg resident set size [kbytes]
 mmulSeq1000;0.5330000000000001;0.527;0.0;0.0;6009.5;26670.4;0.0
 mmulSeq100;0.0;0.0;0.0;0.0;181.6;3361.6;0.0
 mmulSeq10;0.0;0.0;0.0;0.0;120.7;3125.2;0.0

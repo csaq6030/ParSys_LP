@@ -1,3 +1,4 @@
+;wall time [s]; user mode cpu [s]; kernel mode [s]; major page fault; minor page fault; max resident set size [kbytes];avg resident set size [kbytes]
 mmulInd1000;1.2457612130741584;1.2286024580799113;0.009797958971132713;0.0;0.6403124237432849;8192.0;0.0
 mmulInd100;1.734723475976807E-18;1.734723475976807E-18;0.0;0.0;0.9797958971132712;16052.975978303835;0.0
 mmulInd10;0.0;0.0;0.0;0.0;0.0;0.0;0.0
