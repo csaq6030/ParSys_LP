@@ -27,7 +27,30 @@ For the sequential optimization, we can simply reduce the workload -> Since it i
 | mmulSeq1000 | 0.006403124237432854 | 0.009000000000000008  | 0.0                  | 0.0               | 1.857417562100671  | 55.48909802835148               | 0.0                            | 
 | mmulSeq1500 | 0.01100000000000001  | 0.009433981132056611  | 0.006324555320336759 | 0.0               | 1.4866068747318506 | 48.79508171937003               | 0.0                            | 
 
+### Comparison to -O3 Seq version
 
+#### Mean
+
+|               | wall time [s]       |  user mode cpu [s]  |  kernel mode [s]     |  major page fault |  minor page fault |  max resident set size [kbytes] | avg resident set size [kbytes] | 
+|---------------|---------------------|---------------------|----------------------|-------------------|-------------------|---------------------------------|--------------------------------| 
+| mmulSeqO310   | 0.0                 | 0.0                 | 0.0                  | 0.0               | 121.3             | 3138.0                          | 0.0                            | 
+| mmulSeqO3100  | 0.0                 | 0.0                 | 0.0                  | 0.0               | 182.1             | 3376.0                          | 0.0                            | 
+| mmulSeqO3500  | 0.06100000000000001 | 0.06000000000000001 | 0.001                | 0.0               | 1600.3            | 9052.8                          | 0.0                            | 
+| mmulSeqO31000 | 0.5740000000000001  | 0.567               | 0.002                | 0.0               | 6008.6            | 26664.4                         | 0.0                            | 
+| mmulSeqO31500 | 1.9509999999999998  | 1.934               | 0.009999999999999998 | 0.0               | 13347.2           | 56015.6                         | 0.0                            | 
+
+#### SD
+
+|               | wall time [s]         |  user mode cpu [s]     |  kernel mode [s]      |  major page fault |  minor page fault  |  max resident set size [kbytes] | avg resident set size [kbytes] | 
+|---------------|-----------------------|------------------------|-----------------------|-------------------|--------------------|---------------------------------|--------------------------------| 
+| mmulSeqO310   | 0.0                   | 0.0                    | 0.0                   | 0.0               | 1.6155494421403513 | 44.15427499121687               | 0.0                            | 
+| mmulSeqO3100  | 0.0                   | 0.0                    | 0.0                   | 0.0               | 1.22065556157337   | 49.63869458396343               | 0.0                            | 
+| mmulSeqO3500  | 0.0030000000000000022 | 1.3877787807814457E-17 | 0.0029999999999999996 | 0.0               | 1.7916472867168916 | 44.928387462716714              | 0.0                            | 
+| mmulSeqO31000 | 0.004898979485566361  | 0.006403124237432806   | 0.004                 | 0.0               | 1.7435595774162693 | 58.88157606586291               | 0.0                            | 
+| mmulSeqO31500 | 0.005385164807134508  | 0.006633249580710805   | 0.00447213595499958   | 0.0               | 1.16619037896906   | 50.03838526571376               | 0.0                            | 
+  
+
+&nbsp;
 
 For the parallel version, one has to keep in mind that each iteration has different amount workload. The work rises lineraly with ith columb of the matrix, therefore the scheduling of the workload to the threads has a huge imapct on the performance of the program. With static scheduling the loop is divided into equal sized chunks and assigned into the available number of threads. Thus, the workload is distribuited unevenly -> some threads might be idle while others still have a lot of computing to do. In this case, a better scheduling approach is dynamic scheduling -> a chunck sized block(default 1) of loop iteration is assigned to the threads, when a thread is finished it recieves a next block of loop iterations.
 
