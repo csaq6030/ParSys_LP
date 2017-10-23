@@ -81,7 +81,7 @@ Matrix init(unsigned n, F initFun) {
 Matrix operator*(const Matrix& a, const Matrix& b) {
 	unsigned n = a.matSize;
 	Matrix c = init(n, [](unsigned, unsigned) { return 0; });
-	#pragma omp parallel for schedule(dynamic)
+	#pragma omp parallel for schedule(static)
 	for(unsigned i = 0; i < n; ++i) {
 		for(unsigned k = 0; k < n; ++k) {
 			for(unsigned j = 0; j <= i; ++j) {
