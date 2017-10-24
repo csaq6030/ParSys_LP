@@ -77,7 +77,7 @@ For the parallel version, one has to keep in mind that each iteration has differ
 | mmulPar1000 | 0.010198039027185555 | 0.013416407864998751 | 0.0029999999999999996 | 0.0               | 0.9219544457292888 | 50.84879546262625               | 0.0                            | 
 | mmulPar1500 | 0.019723082923316038 | 0.01910497317454267  | 0.006403124237432849  | 0.0               | 0.7810249675906655 | 48.74258918030514               | 0.0                            | 
 
-### Comparison to -O3 parallel version
+### Comparison to -O3 sequential version
 
 #### Mean
 
