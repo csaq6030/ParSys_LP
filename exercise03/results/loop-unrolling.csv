@@ -5,6 +5,6 @@ c_static float;;;;
 c_dynamic double;no;yes;yes;yes
 c_dynamic int;no;yes;yes;no
 c_dynamic float;no;yes;yes;yes
-cpp_dynamic double;;;;
-cpp_dynamic int;;;;
-cpp_dynamic float;;;;
+cpp_dynamic double;;yes;yes;
+cpp_dynamic int;;yes;yes;
+cpp_dynamic float;;yes;yes;
