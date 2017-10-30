@@ -1,10 +1,10 @@
-;gcc 7.2;clang 5.0;icc 17;MSVC 19
-c_static double;;;;
-c_static int;;;;
-c_static float;;;;
-c_dynamic double;;;;
-c_dynamic int;;;;
-c_dynamic float;;;;
-cpp_dynamic double;;;;
-cpp_dynamic int;;;;
-cpp_dynamic float;;;;
+,gcc 7.2,clang 5.0,icc 17,MSVC 19
+c_static double,no,yes,yes,yes
+c_static int,no,yes,yes,yes
+c_static float,no,yes,yes,yes
+c_dynamic double,,,,
+c_dynamic int,,,,
+c_dynamic float,,,,
+cpp_dynamic double,no,,,yes
+cpp_dynamic int,no,,,no
+cpp_dynamic float,no,,,yes
