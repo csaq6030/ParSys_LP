@@ -2,9 +2,9 @@
 c_static double;;;;
 c_static int;;;;
 c_static float;;;;
-c_dynamic double;;;;
-c_dynamic int;;;;
-c_dynamic float;;;;
+c_dynamic double;0;0;4;0
+c_dynamic int;0;0;8;0
+c_dynamic float;0;0;8;0
 cpp_dynamic double;;;;
 cpp_dynamic int;;;;
 cpp_dynamic float;;;;
