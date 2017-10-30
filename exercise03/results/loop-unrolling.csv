@@ -1,7 +1,7 @@
 ;gcc 7.2;clang 5.0;icc 17;MSVC 19
-c_static double,no,yes,yes,yes
-c_static int,no,yes,yes,yes
-c_static float,no,yes,yes,yes
+c_static double;no;yes;yes;yes
+c_static int;no;yes;yes;yes
+c_static float;no;yes;yes;yes
 c_dynamic double;no;yes;yes;yes
 c_dynamic int;no;yes;yes;no
 c_dynamic float;no;yes;yes;yes
