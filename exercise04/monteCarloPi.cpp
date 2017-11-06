@@ -1,7 +1,6 @@
 #include <iostream>
 #include <random>
 #include <cmath>
-#include <chrono>
 #include <omp.h>
 
 #include "chrono_timer.h"
@@ -52,16 +51,11 @@ int main(int argc, char** argv) {
 	double pi;
 	
 	if(!method.compare("seq")){
-		//ChronoTimer("Pi Sequential");
-		chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
+		ChronoTimer t("Pi Sequential");
     	pi = MCS_Seq(n);
-		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
-		std::cout << "Timer - " << ": " << elapsed.count() << " ms " << std::endl;
     }else if(!method.compare("par")){
-		chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
+		ChronoTimer h("Pi Sequential");
     	pi = MCS_Par(n);
-		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
-		std::cout << "Timer - " << ": " << elapsed.count() << " ms " << std::endl;
 	}else{
 		cout << "executeable #OfSamples par/seq" << endl;
 	}
