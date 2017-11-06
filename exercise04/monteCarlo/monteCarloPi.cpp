@@ -10,8 +10,8 @@ using namespace std;
 double MCS_Seq(unsigned long n){
 	unsigned long c = 0;
 	double x, y;
-	random_device rd;
-	mt19937 gen(rd()); 
+	random_device rd;	// random seed
+	mt19937 gen(rd()); 	// random generator
 	uniform_real_distribution<double> dis(0, 1.0);
 	for(unsigned i = 0; i < n; i++){
 		x = dis(gen);
@@ -54,13 +54,14 @@ int main(int argc, char** argv) {
 		ChronoTimer t("Pi Sequential");
     	pi = MCS_Seq(n);
     }else if(!method.compare("par")){
-		ChronoTimer h("Pi Sequential");
+		ChronoTimer h("Pi Parallel");
     	pi = MCS_Par(n);
 	}else{
 		cout << "executeable #OfSamples par/seq" << endl;
 	}
 
-	cout.precision(12);
+	cout.precision(11);
+	cout << fixed;
 	cout<< "Estimated value of pi is: " << pi << endl;
 	cout<< "Actual    Value of pi is: 3.14159265359" << endl;
 

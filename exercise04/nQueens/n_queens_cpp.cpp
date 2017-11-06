@@ -33,34 +33,18 @@ void putQueen(uint32_t *queens, uint32_t row, uint32_t col) {
     }
 }
 
-void rec_n_queens() {
+uint32_t rec_n_queens() {
 #pragma omp parallel for
     for(uint32_t i = 0; i < N; i++) {
         uint32_t *queens = (uint32_t*)calloc(N, sizeof(uint32_t));
         putQueen(queens, 0, i);
         free(queens);
     }
+	return solution;
 }
 
-int main(int argc, char *argv[]) {
-	if(argc == 2) {
-		N = atoi(argv[1]);	
-	} else {
-        cout << "Usage: n_queens [N]" << endl;
-		return EXIT_FAILURE;
-	}	
-    
-    {
-        ChronoTimer t("Execution ");
 
-        rec_n_queens();
-        
-        
-    
-    }
-    
-    cout << "Found " << solution <<  " solutions" << endl ;
-
-	return EXIT_SUCCESS;
-
+void setTest(uint32_t n){
+	N = n;
+	solution = 0;
 }
