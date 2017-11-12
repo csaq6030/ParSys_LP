@@ -8,14 +8,15 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}	
     
+    uint32_t result;
     {
         ChronoTimer t("Execution ");
 
-        rec_n_queens();
+         result = rec_n_queens();
     
     }
     
-    cout << "Found " << solution <<  " solutions" << endl ;
+    cout << "Found " << result <<  " solutions" << endl ;
 
 	return EXIT_SUCCESS;
 
