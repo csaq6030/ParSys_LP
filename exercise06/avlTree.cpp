@@ -285,6 +285,7 @@ vector<unsigned int> thread_helper(vector<unsigned int> arr, vector<unsigned int
     vector<unsigned int> testMe;
     vector<unsigned int> *testMePtr = &testMe;
     tmp.storeInorder(testMePtr);
+    //cout << "Helper: " << testMe.size() << endl;
     return testMe;
     
 }
@@ -293,10 +294,12 @@ std::vector<unsigned int> flatten(const std::vector<std::vector<unsigned int>>& 
     std::size_t total_size = 0;
     for (const auto& sub : v)
         total_size += sub.size();
+    
     std::vector<unsigned int> result;
     result.reserve(total_size);
     for (const auto& sub : v)
         result.insert(result.end(), sub.begin(), sub.end());
+    
     return result;
 }
 
@@ -326,6 +329,7 @@ int main(int argc, char* argv[]) {
     }
     
     const size_t block_size = size / threads;
+    //cout << block_size << endl;
     
     vector<vector<unsigned int>> results;
     results.reserve(threads);
@@ -336,29 +340,29 @@ int main(int argc, char* argv[]) {
         //cout << id << endl;
         if (id != threads - 1) {
             //cout << thread_helper(value, value.begin() + block_size * id, block_size).size() << endl;
-            results[id] = thread_helper(value, value.begin() + block_size * id, block_size);
+            results.push_back(thread_helper(value, value.begin() + block_size * id, block_size));
         }
         else {
-            results[id] = thread_helper(value, value.begin() + block_size * id + (size % threads), block_size);
+            results.push_back(thread_helper(value, value.begin() + block_size * id + (size % threads), block_size));
         }
     }
     
-    cout << results[0].size() << endl;
     vector<unsigned int> flat = flatten(results);
     
+    cout << flat.size() << endl;
     sort(flat.begin(), flat.end());
-    
+    std::unique(flat.begin(), flat.end());
     cout << flat.size() << endl;
     
-    /*
-    for (int i = 0; i < results.size() - 1 ; i++) {
-        if (results[i] > results[i + 1])
+    
+    for (int i = 0; i < flat.size() - 1 ; i++) {
+        if (flat[i] > flat[i + 1])
             cout << "error with sorting" << endl;
-    } */
+    }
     
-    //avlTree out(value, 0, size);
+    avlTree out(flat);
     
-    //cout << out.check() << endl;
+    cout << out.check() << endl;
     
     
     
