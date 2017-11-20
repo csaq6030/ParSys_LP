@@ -328,41 +328,58 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    const size_t block_size = size / threads;
-    //cout << block_size << endl;
-    
-    vector<vector<unsigned int>> results;
-    results.reserve(threads);
-    
-    #pragma omp parallel num_threads(threads)
-    {
-        int id = omp_get_thread_num();
-        //cout << id << endl;
-        if (id != threads - 1) {
-            //cout << thread_helper(value, value.begin() + block_size * id, block_size).size() << endl;
-            results.push_back(thread_helper(value, value.begin() + block_size * id, block_size));
+    if (threads > 1) {
+        const size_t block_size = size / threads;
+        //cout << block_size << endl;
+        
+        vector<vector<unsigned int>> results;
+        results.reserve(threads);
+        
+        #pragma omp parallel num_threads(threads)
+        {
+            int id = omp_get_thread_num();
+            //cout << id << endl;
+            if (id != threads - 1) {
+                //cout << thread_helper(value, value.begin() + block_size * id, block_size).size() << endl;
+                results.push_back(thread_helper(value, value.begin() + block_size * id, block_size));
+            }
+            else {
+                results.push_back(thread_helper(value, value.begin() + block_size * id + (size % threads), block_size));
+            }
         }
-        else {
-            results.push_back(thread_helper(value, value.begin() + block_size * id + (size % threads), block_size));
+        
+        vector<unsigned int> flat = flatten(results);
+        
+        //cout << flat.size() << endl;
+        sort(flat.begin(), flat.end());
+        flat.erase(unique(flat.begin(), flat.end()), flat.end());
+        //cout << flat.size() << endl;
+        
+        
+        for (int i = 0; i < flat.size() - 1 ; i++) {
+            if (flat[i] >= flat[i + 1])
+                cout << "error with sorting: " << flat[i] << ">" << flat[i + 1]<< endl;
         }
+        
+        avlTree out(flat);
+        
+        cout << out.check() << endl;
+        
+        if(out.check())
+            return EXIT_SUCCESS;
+        else
+            return EXIT_FAILURE;
     }
-    
-    vector<unsigned int> flat = flatten(results);
-    
-    cout << flat.size() << endl;
-    sort(flat.begin(), flat.end());
-    flat.erase(unique(flat.begin(), flat.end()), flat.end());
-    cout << flat.size() << endl;
-    
-    
-    for (int i = 0; i < flat.size() - 1 ; i++) {
-        if (flat[i] > flat[i + 1])
-            cout << "error with sorting: " << flat[i] << ">" << flat[i + 1]<< endl;
+    else {
+        avlTree out(value);
+        
+        cout << out.check() << endl;
+        
+        if(out.check())
+            return EXIT_SUCCESS;
+        else
+            return EXIT_FAILURE;
     }
-    
-    avlTree out(flat);
-    
-    cout << out.check() << endl;
     
     
     
@@ -395,7 +412,6 @@ int main(int argc, char* argv[]) {
     */
     
     
-    return EXIT_SUCCESS;
 }
     
     
