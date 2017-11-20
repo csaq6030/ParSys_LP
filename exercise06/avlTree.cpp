@@ -238,7 +238,7 @@ public:
     }
     
     
-    nodeptr sortedArrayToAVL(vector<unsigned int> arr, int start, int end) {
+    nodeptr sortedArrayToAVL(vector<unsigned int> arr, int start, int end, int threads) {
         if (start > end)
             return NULL;
         
@@ -250,31 +250,37 @@ public:
         tmp->left = NULL;
         tmp->height = 0;
         
-        
-        #pragma omp parallel
-        {
-            
-            #pragma omp single
+        if (threads == 1) {
+            tmp->left =  sortedArrayToAVL(arr, start, mid-1, 1);
+            tmp->right = sortedArrayToAVL(arr, mid+1, end, 1);
+            tmp->height = max(get_height(tmp->left),get_height(tmp->right)) + 1;
+        }else {
+            #pragma omp parallel
             {
-                /* Recursively construct the left subtree and make it
-                left child of root */
-                #pragma omp task
-                tmp->left =  sortedArrayToAVL(arr, start, mid-1);
                 
-                /* Recursively construct the right subtree and make it
-                right child of root */
-                #pragma omp task
-                tmp->right = sortedArrayToAVL(arr, mid+1, end);
-            
-                #pragma omp taskwait
-                tmp->height = max(get_height(tmp->left),get_height(tmp->right)) + 1;
+                #pragma omp single
+                {
+                    /* Recursively construct the left subtree and make it
+                    left child of root */
+                    #pragma omp task
+                    tmp->left =  sortedArrayToAVL(arr, start, mid-1, threads / 2);
+                    
+                    /* Recursively construct the right subtree and make it
+                    right child of root */
+                    #pragma omp task
+                    tmp->right = sortedArrayToAVL(arr, mid+1, end, threads - threads / 2);
+                    
+                    #pragma omp taskwait
+                    tmp->height = max(get_height(tmp->left),get_height(tmp->right)) + 1;
+                }
+
             }
         }
         
         return tmp;
     }
     
-    avlTree(vector<unsigned int> arr) : root(sortedArrayToAVL(arr, 0, arr.size() - 1)){}
+    avlTree(vector<unsigned int> arr, int threads) : root(sortedArrayToAVL(arr, 0, arr.size() - 1, threads)){}
     
     void printInorder() {
         printInorder(root);
@@ -339,10 +345,7 @@ int main(int argc, char* argv[]) {
     }
     
     if (threads > 1) {
-        //omp_set_nested(1);
-        if (omp_get_nested() != 1) {
-            cout << "Nested omp not supported" << endl;
-        }
+        omp_set_nested(1);
         
         const size_t block_size = size / threads;
         //cout << block_size << endl;
@@ -368,15 +371,16 @@ int main(int argc, char* argv[]) {
         //cout << flat.size() << endl;
         sort(flat.begin(), flat.end());
         flat.erase(unique(flat.begin(), flat.end()), flat.end());
-        cout << flat.size() << endl;
+        //cout << flat.size() << endl;
         
         
+        /*
         for (int i = 0; i < flat.size() - 1 ; i++) {
             if (flat[i] >= flat[i + 1])
                 cout << "error with sorting: " << flat[i] << ">" << flat[i + 1]<< endl;
-        }
+        } */
         
-        avlTree out(flat);
+        avlTree out(flat, threads);
         
         cout << out.check() << endl;
         
@@ -386,7 +390,7 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
     }
     else {
-        avlTree out(value);
+        avlTree out(value, threads);
         
         cout << out.check() << endl;
         
