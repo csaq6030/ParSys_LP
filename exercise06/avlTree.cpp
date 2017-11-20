@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <omp.h>
 #include <vector>
-
+#include "chrono_timer.h"
 using namespace std;
 
 struct node{
@@ -344,15 +344,18 @@ int main(int argc, char* argv[]) {
         }
     }
     
+    
     if (threads > 1) {
-        omp_set_nested(1);
         
+        ChronoTimer* t = new ChronoTimer("Tree");
+        omp_set_nested(1);
+    
         const size_t block_size = size / threads;
         //cout << block_size << endl;
-        
+    
         vector<vector<unsigned int>> results;
         results.reserve(threads);
-        
+    
         #pragma omp parallel num_threads(threads)
         {
             int id = omp_get_thread_num();
@@ -365,39 +368,58 @@ int main(int argc, char* argv[]) {
                 results.push_back(thread_helper(value, value.begin() + block_size * id + (size % threads), block_size));
             }
         }
-        
+    
         vector<unsigned int> flat = flatten(results);
-        
+    
         //cout << flat.size() << endl;
         sort(flat.begin(), flat.end());
         flat.erase(unique(flat.begin(), flat.end()), flat.end());
         //cout << flat.size() << endl;
+    
+        avlTree out(flat, min(4,threads));
+        delete t;
         
+        bool check = out.check();
         
-        /*
-        for (int i = 0; i < flat.size() - 1 ; i++) {
-            if (flat[i] >= flat[i + 1])
-                cout << "error with sorting: " << flat[i] << ">" << flat[i + 1]<< endl;
-        } */
+        cout << check << endl;
         
-        avlTree out(flat, threads);
-        
-        cout << out.check() << endl;
-        
-        if(out.check())
+        if(check)
             return EXIT_SUCCESS;
         else
             return EXIT_FAILURE;
     }
-    else {
-        avlTree out(value, threads);
+    else if (threads == 1){
+        ChronoTimer* t = new ChronoTimer("Tree");
+        avlTree out(value, 1);
+        delete t;
         
-        cout << out.check() << endl;
+        bool check = out.check();
         
-        if(out.check())
+        cout << check << endl;
+        
+        if(check)
             return EXIT_SUCCESS;
         else
             return EXIT_FAILURE;
+    } else {
+        
+        ChronoTimer* t = new ChronoTimer("Tree");
+        sort(value.begin(), value.end());
+        value.erase(unique(value.begin(), value.end()), value.end());
+        
+        omp_set_nested(1);
+        avlTree out(value, 4);
+        delete t;
+        
+        bool check = out.check();
+        
+        cout << check << endl;
+        
+        if(check)
+            return EXIT_SUCCESS;
+        else
+            return EXIT_FAILURE;
+        
     }
     
     

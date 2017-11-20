@@ -1,5 +1,8 @@
 # Exercise 6
 
+This code was not tested on the LCC2 cluster since it performs worse than the sequential version and this would be a waste of computation time. The original idea performs a little bit better than the sequential version but does not satisfy the exercise specifications. 
+
+## Description
 The goal of this exercise is to implement, optimize, parallelize and benchmark an algorithm for performing insertions in an **AVL tree**. 
 You do not need to worry about other operations, such as deletions.
 
