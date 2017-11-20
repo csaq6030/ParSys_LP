@@ -351,13 +351,13 @@ int main(int argc, char* argv[]) {
     
     cout << flat.size() << endl;
     sort(flat.begin(), flat.end());
-    std::unique(flat.begin(), flat.end());
+    flat.erase(unique(flat.begin(), flat.end()), flat.end());
     cout << flat.size() << endl;
     
     
     for (int i = 0; i < flat.size() - 1 ; i++) {
         if (flat[i] > flat[i + 1])
-            cout << "error with sorting" << endl;
+            cout << "error with sorting: " << flat[i] << ">" << flat[i + 1]<< endl;
     }
     
     avlTree out(flat);
