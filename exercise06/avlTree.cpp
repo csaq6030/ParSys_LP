@@ -251,15 +251,25 @@ public:
         tmp->height = 0;
         
         
-        /* Recursively construct the left subtree and make it
-         left child of root */
-        tmp->left =  sortedArrayToAVL(arr, start, mid-1);
-        
-        /* Recursively construct the right subtree and make it
-         right child of root */
-        tmp->right = sortedArrayToAVL(arr, mid+1, end);
-        
-        tmp->height = max(get_height(tmp->left),get_height(tmp->right)) + 1;
+        #pragma omp parallel
+        {
+            
+            #pragma omp single
+            {
+                /* Recursively construct the left subtree and make it
+                left child of root */
+                #pragma omp task
+                tmp->left =  sortedArrayToAVL(arr, start, mid-1);
+                
+                /* Recursively construct the right subtree and make it
+                right child of root */
+                #pragma omp task
+                tmp->right = sortedArrayToAVL(arr, mid+1, end);
+            
+                #pragma omp taskwait
+                tmp->height = max(get_height(tmp->left),get_height(tmp->right)) + 1;
+            }
+        }
         
         return tmp;
     }
@@ -329,6 +339,11 @@ int main(int argc, char* argv[]) {
     }
     
     if (threads > 1) {
+        //omp_set_nested(1);
+        if (omp_get_nested() != 1) {
+            cout << "Nested omp not supported" << endl;
+        }
+        
         const size_t block_size = size / threads;
         //cout << block_size << endl;
         
@@ -353,7 +368,7 @@ int main(int argc, char* argv[]) {
         //cout << flat.size() << endl;
         sort(flat.begin(), flat.end());
         flat.erase(unique(flat.begin(), flat.end()), flat.end());
-        //cout << flat.size() << endl;
+        cout << flat.size() << endl;
         
         
         for (int i = 0; i < flat.size() - 1 ; i++) {
