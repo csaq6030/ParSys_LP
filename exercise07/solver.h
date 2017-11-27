@@ -1,4 +1,4 @@
-#ifdef SOLVER_H
+#ifndef SOLVER_H
 #define SOLVER_H
 
 
@@ -14,11 +14,11 @@ using namespace std;
 class Solver {
 public:
 	Wrapper *data;
-	float epsilon;
+	const float epsilon;
 	size_t iter;
-	const int size;    
+	const int size;   
 
-    Solver(Wrapper* d, float epsilon);
+    Solver(Wrapper* d, const float epsilon);
 	void compute();
 	void showResult();
 private:
@@ -33,7 +33,7 @@ private:
     
 };
 
-Solver::Solver(Wrapper * d, float epsilon) :data(d), epsilon(epsilon), size(data->size){
+Solver::Solver(Wrapper * d, const float epsilon) :data(d), epsilon(epsilon), size(data->size){
 	
 }
 
@@ -86,6 +86,7 @@ void Solver::showResult(){
 
 float Solver::iteration1D_A(){
 	float prog = 0;
+	#pragma omp parallel for reduction(+: prog)
 	for(int i = 1; i < size + 1; i++){
 		float tmp = (data->arrayA[i-1] + data->arrayA[i] + data->arrayA[i+1])/3;
 		prog += abs(data->arrayA[i]-tmp);
@@ -96,6 +97,7 @@ float Solver::iteration1D_A(){
 
 float Solver::iteration1D_B(){
 	float prog = 0;
+	#pragma omp parallel for reduction(+: prog)
 	for(int i = 1; i < size + 1; i++){
 		float tmp = (data->arrayB[i-1] + data->arrayB[i] + data->arrayB[i+1])/3;
 		prog += abs(data->arrayB[i]-tmp);
@@ -106,6 +108,7 @@ float Solver::iteration1D_B(){
 
 float Solver::iteration2D_A(){
 	float prog = 0;
+	#pragma omp parallel for reduction(+: prog) collapse(2)
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
 			float tmp = (data->arrayA[access(i, j-1)] + data->arrayA[access(i, j)] + data->arrayA[access(i, j+1)] +
@@ -119,6 +122,7 @@ float Solver::iteration2D_A(){
 
 float Solver::iteration2D_B(){
 	float prog = 0;
+	#pragma omp parallel for reduction(+: prog) collapse(2)
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
 			float tmp = (data->arrayB[access(i, j-1)] + data->arrayB[access(i, j)] + data->arrayB[access(i, j+1)] +
@@ -132,6 +136,7 @@ float Solver::iteration2D_B(){
 
 float Solver::iteration3D_A(){
 	float prog = 0;
+	#pragma omp parallel for reduction(+: prog) collapse(3)
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
 			for(int k = 1; k < size + 1; k++){
@@ -147,6 +152,7 @@ float Solver::iteration3D_A(){
 
 float Solver::iteration3D_B(){
 	float prog = 0;
+	#pragma omp parallel for reduction(+: prog) collapse(3)
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
 			for(int k = 1; k < size + 1; k++){
