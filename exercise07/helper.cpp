@@ -50,12 +50,12 @@ void Wrapper::setBoundary1D(float left, float right) {
 void Wrapper::setBoundary2D(float left, float right, float up, float down) {
     for (int i = 0; i < size + 2; i++) {
         arrayA[i] = up;
-        arrayA[i * (size + 2) + 0] = left;
+        arrayA[i * (size + 2)] = left;
         arrayA[i * (size + 2) + size + 1] = right;
         arrayA[(size + 1) * (size + 2) + i] = down;
         
-        arrayB[i] = up;
-        arrayB[i * (size + 2) + 0] = left;
+		arrayB[i] = up;
+        arrayB[i * (size + 2)] = left;
         arrayB[i * (size + 2) + size + 1] = right;
         arrayB[(size + 1) * (size + 2) + i] = down;
     }
@@ -66,9 +66,8 @@ void Wrapper::setBoundary3D(float left, float right, float up, float down, float
 }
 
 void Wrapper::print2DA() {
-    cout << "dim: " << this->dim << " size: " << this->size << endl;
     for (int i = 0; i < size + 2; i++) {
-        for (int j = 0; i < size + 2; j++) {
+        for (int j = 0; j < size + 2; j++) {
             cout << arrayA[i * (size + 2) + j] << ", ";
         }
         cout << endl;
@@ -81,7 +80,7 @@ Wrapper::~Wrapper() {
 }
 
 int main () {
-    Wrapper test(2, 1);
+    Wrapper test(2, 5);
     test.setBoundary2D(1,2,3,4);
     //cout << "dim: " << test.dim << " size: " << test.size << endl;
     test.print2DA();
