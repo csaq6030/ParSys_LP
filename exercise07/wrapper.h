@@ -18,21 +18,21 @@ private:
 public:
     float *arrayA;
     float *arrayB;
-    int dim;
-    int size;
+    const int dim;
+    const int size;
     
-    Wrapper(int dim, int size);
+    Wrapper(const int dim,const int size);
     ~Wrapper();
-    void setBoundary(float left, float right);
-    void setBoundary(float left, float right, float up, float down);
-    void setBoundary(float left, float right, float up, float down, float front, float back);
+    void setBoundary(const float left, const float right);
+    void setBoundary(const float left, const float right, const float up, const float down);
+    void setBoundary(const float left, const float right, const float up, const float down, const float front, const float back);
     void printA();
     void printB();
-    void print()
+    void print();
     
 };
 
-Wrapper::Wrapper(int dim, int size) :size(size), dim(dim){
+Wrapper::Wrapper(const int dim,const int size) :size(size), dim(dim){
     //+2 to include boundary and therefore ignore border cases in jacobi
     if (dim == 1) {
         arrayA = new float[size + 2]();
@@ -49,7 +49,7 @@ Wrapper::Wrapper(int dim, int size) :size(size), dim(dim){
 }
 
 //1D
-void Wrapper::setBoundary(float left, float right) {
+void Wrapper::setBoundary(const float left, const float right) {
     arrayA[0] = left;
     arrayA[size + 1] = right;
     
@@ -58,7 +58,7 @@ void Wrapper::setBoundary(float left, float right) {
 }
 
 //2D
-void Wrapper::setBoundary(float left, float right, float up, float down) {
+void Wrapper::setBoundary(const float left, const float right, const float up, const float down) {
     for (int i = 0; i < size + 2; i++) {
         arrayA[i] = up;
         arrayA[i * (size + 2)] = left;
@@ -73,7 +73,7 @@ void Wrapper::setBoundary(float left, float right, float up, float down) {
 }
 
 //3D
-void Wrapper::setBoundary(float left, float right, float up, float down, float front, float back) {
+void Wrapper::setBoundary(const float left, const float right, const float up, const float down, const float front, const float back) {
     for (int i = 0; i < size + 2; i++) {
         for (int j = 0; j < size + 2; j++) {
             arrayA[i * (size + 2) + j] = front;
@@ -164,9 +164,9 @@ void Wrapper::print3DB() {
     }
 }
 
-void printA() {
+void Wrapper::printA() {
     if (dim == 1) {
-        print1DA()
+        print1DA();
     } else if (dim == 2) {
         print2DA();
     } else {
@@ -174,9 +174,9 @@ void printA() {
     }
 }
 
-void printB() {
+void Wrapper::printB() {
     if (dim == 1) {
-        print1DB()
+        print1DB();
     } else if (dim == 2) {
         print2DB();
     } else {
@@ -184,7 +184,7 @@ void printB() {
     }
 }
 
-void print() {
+void Wrapper::print() {
     if (dim == 1) {
         print1DA();
         cout << endl << endl;
@@ -212,7 +212,7 @@ int main () {
     int size = 5;
     int dim = 3;
     Wrapper test(dim, size);
-    test.setBoundary3D(1,2,3,4,5,6);
+    test.setBoundary(1,2,3,4,5,6);
     test.arrayA[3 * (size + 2) * (size + 2) + 3 * (size + 2) + 3] = 42.42;
-    test.print3DA();
+    test.printA();
 } */
