@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     if (atoi(argv[2]) == 1 && argc == 7) { //1D
         Wrapper w1(1, size);
 		w1.setBoundary(left, right);
-		Solver s1(&w1, epsilon);
+		Solver s1(w1, epsilon);
 		
 		const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
 		s1.compute();
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 
 		Wrapper w1(2, size);
 		w1.setBoundary(left, right, up, down);
-		Solver s1(&w1, epsilon);
+		Solver s1(w1, epsilon);
 		
 		const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
 		s1.compute();
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
 
 		Wrapper w1(3, size);
 		w1.setBoundary(left, right, up, down, front, back);
-		Solver s1(&w1, epsilon);
+		Solver s1(w1, epsilon);
 		
 		const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
 		s1.compute();

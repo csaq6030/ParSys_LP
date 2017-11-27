@@ -13,12 +13,12 @@ using namespace std;
 
 class Solver {
 public:
-	Wrapper *data;
+	Wrapper &data;
 	const float epsilon;
 	size_t iter;
 	const int size;   
 
-    Solver(Wrapper* d, const float epsilon);
+    Solver(Wrapper & d, const float epsilon);
 	void compute();
 	void showResult();
 private:
@@ -33,14 +33,14 @@ private:
     
 };
 
-Solver::Solver(Wrapper * d, const float epsilon) :data(d), epsilon(epsilon), size(data->size){
+Solver::Solver(Wrapper & d, const float epsilon) :data(d), epsilon(epsilon), size(data.size){
 	
 }
 
 void Solver::compute(){
 	float progress = 500000;
 	iter=0;
-	switch(data->dim){
+	switch(data.dim){
 		case 1:
 			while(progress > epsilon){
 				if(iter%2 == 0){
@@ -78,9 +78,9 @@ void Solver::compute(){
 
 void Solver::showResult(){
 	if(iter%2 == 0)
-		data->printA();
+		data.printA();
 	else
-		data->printB();
+		data.printB();
 	cout << "Iterations = " << iter << endl;
 }
 
@@ -88,9 +88,9 @@ float Solver::iteration1D_A(){
 	float prog = 0;
 	#pragma omp parallel for reduction(+: prog)
 	for(int i = 1; i < size + 1; i++){
-		float tmp = (data->arrayA[i-1] + data->arrayA[i] + data->arrayA[i+1])/3;
-		prog += abs(data->arrayA[i]-tmp);
-		data->arrayB[i] = tmp;
+		float tmp = (data.arrayA[i-1] + data.arrayA[i] + data.arrayA[i+1])/3;
+		prog += abs(data.arrayA[i]-tmp);
+		data.arrayB[i] = tmp;
 	}
 	return prog;
 }
@@ -99,9 +99,9 @@ float Solver::iteration1D_B(){
 	float prog = 0;
 	#pragma omp parallel for reduction(+: prog)
 	for(int i = 1; i < size + 1; i++){
-		float tmp = (data->arrayB[i-1] + data->arrayB[i] + data->arrayB[i+1])/3;
-		prog += abs(data->arrayB[i]-tmp);
-		data->arrayA[i] = tmp;
+		float tmp = (data.arrayB[i-1] + data.arrayB[i] + data.arrayB[i+1])/3;
+		prog += abs(data.arrayB[i]-tmp);
+		data.arrayA[i] = tmp;
 	}
 	return prog;
 }
@@ -111,10 +111,10 @@ float Solver::iteration2D_A(){
 	#pragma omp parallel for reduction(+: prog) collapse(2)
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
-			float tmp = (data->arrayA[access(i, j-1)] + data->arrayA[access(i, j)] + data->arrayA[access(i, j+1)] +
-						 data->arrayA[access(i-1, j)] + data->arrayA[access(i+1, j)])/5;
-			prog += abs(data->arrayA[access(i, j)]-tmp);
-			data->arrayB[access(i, j)] = tmp;
+			float tmp = (data.arrayA[access(i, j-1)] + data.arrayA[access(i, j)] + data.arrayA[access(i, j+1)] +
+						 data.arrayA[access(i-1, j)] + data.arrayA[access(i+1, j)])/5;
+			prog += abs(data.arrayA[access(i, j)]-tmp);
+			data.arrayB[access(i, j)] = tmp;
 		}
 	}
 	return prog;
@@ -125,10 +125,10 @@ float Solver::iteration2D_B(){
 	#pragma omp parallel for reduction(+: prog) collapse(2)
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
-			float tmp = (data->arrayB[access(i, j-1)] + data->arrayB[access(i, j)] + data->arrayB[access(i, j+1)] +
-						 data->arrayB[access(i-1, j)] + data->arrayB[access(i+1, j)])/5;
-			prog += abs(data->arrayB[access(i, j)]-tmp);
-			data->arrayA[access(i, j)] = tmp;
+			float tmp = (data.arrayB[access(i, j-1)] + data.arrayB[access(i, j)] + data.arrayB[access(i, j+1)] +
+						 data.arrayB[access(i-1, j)] + data.arrayB[access(i+1, j)])/5;
+			prog += abs(data.arrayB[access(i, j)]-tmp);
+			data.arrayA[access(i, j)] = tmp;
 		}
 	}
 	return prog;
@@ -140,10 +140,10 @@ float Solver::iteration3D_A(){
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
 			for(int k = 1; k < size + 1; k++){
-				float tmp = (data->arrayB[access(i-1, j, k)] + data->arrayB[access(i+1, j, k)] + data->arrayB[access(i, j, k)] +
-							 data->arrayB[access(i, j-1, k)] + data->arrayB[access(i, j+1, k)] + data->arrayB[access(i, j, k-1)] + data->arrayB[access(i, j, k+1)] )/7;
-				prog += abs(data->arrayB[access(i, j, k)]-tmp);
-				data->arrayA[access(i, j, k)] = tmp;
+				float tmp = (data.arrayB[access(i-1, j, k)] + data.arrayB[access(i+1, j, k)] + data.arrayB[access(i, j, k)] +
+							 data.arrayB[access(i, j-1, k)] + data.arrayB[access(i, j+1, k)] + data.arrayB[access(i, j, k-1)] + data.arrayB[access(i, j, k+1)] )/7;
+				prog += abs(data.arrayB[access(i, j, k)]-tmp);
+				data.arrayA[access(i, j, k)] = tmp;
 			}			
 		}
 	}
@@ -156,10 +156,10 @@ float Solver::iteration3D_B(){
 	for(int i = 1; i < size + 1; i++){
 		for(int j = 1; j < size + 1; j++){
 			for(int k = 1; k < size + 1; k++){
-				float tmp = (data->arrayA[access(i-1, j, k)] + data->arrayA[access(i+1, j, k)] + data->arrayA[access(i, j, k)] +
-							 data->arrayA[access(i, j-1, k)] + data->arrayA[access(i, j+1, k)] + data->arrayA[access(i, j, k-1)] + data->arrayA[access(i, j, k+1)] )/7;
-				prog += abs(data->arrayA[access(i, j, k)]-tmp);
-				data->arrayB[access(i, j, k)] = tmp;
+				float tmp = (data.arrayA[access(i-1, j, k)] + data.arrayA[access(i+1, j, k)] + data.arrayA[access(i, j, k)] +
+							 data.arrayA[access(i, j-1, k)] + data.arrayA[access(i, j+1, k)] + data.arrayA[access(i, j, k-1)] + data.arrayA[access(i, j, k+1)] )/7;
+				prog += abs(data.arrayA[access(i, j, k)]-tmp);
+				data.arrayB[access(i, j, k)] = tmp;
 			}			
 		}
 	}
