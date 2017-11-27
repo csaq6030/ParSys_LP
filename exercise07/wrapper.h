@@ -28,10 +28,7 @@ public:
     
 };
 
-Wrapper::Wrapper(int dim, int size) :size(size), dim(dim){
-    this->dim = dim;
-    this->size = size;
-    
+Wrapper::Wrapper(int dim, int size) :size(size), dim(dim){    
     //+2 to include boundary and therefore ignore border cases in jacobi
     if (dim == 1) {
         arrayA = new float[size + 2]();
