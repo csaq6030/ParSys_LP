@@ -38,13 +38,11 @@ private:
 
 Solver::Solver(Wrapper * d, const float epsilon) :data(d), epsilon(epsilon), size(data->size){
 	if(data->dim == 2){
-		for(unsigned i = 0; i < size+2; ++i) {
 		indirectionA.resize(size+2);
 		indirectionB.resize(size+2);
-			for(unsigned j = 0; j < size+2; ++j) {
-				indirectionA[i] = &data->arrayA[i*(size+2)];
-				indirectionB[i] = &data->arrayB[i*(size+2)];
-			}
+		for(unsigned i = 0; i < size+2; ++i) {
+			indirectionA[i] = &data->arrayA[i*(size+2)];
+			indirectionB[i] = &data->arrayB[i*(size+2)];
 		}
 	}
 }
