@@ -12,7 +12,8 @@ using namespace std;
 void printError() {
     cout << "Usage: [number of threads] [dimension] [size] [epsilon] [left] [right] [up] [down] [front] [back]" << endl
     << "up and down are needed only for 2D and 3D" << endl
-    << "front and back only for 3D" << endl;
+    << "front and back only for 3D" << endl
+    << "num of number of threads is ignored, just input something in this place" << endl;
 }
 
 
@@ -24,11 +25,10 @@ int main(int argc, char* argv[]) {
     float right = 0;
 	float reducedProgress = 0;
     
-	int myid, worldSize;
-	MPI_Init(&argc, &argv);				
-	MPI_Comm_rank(MPI_COMM_WORLD, &myid);	
-	MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
-
+    int myid, worldSize;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
 
 	
     if ( argc > 11  || argc < 7) {
@@ -36,6 +36,8 @@ int main(int argc, char* argv[]) {
 		MPI_Finalize(); 
         return EXIT_FAILURE;
     }
+    
+
     
     if (argc >= 7) {
 		//omp_set_num_threads(atoi(argv[1]));
@@ -48,22 +50,21 @@ int main(int argc, char* argv[]) {
     }
 
 	const int blockSize = size/(int)worldSize;
-	//neighbour indexing
+	
+    //neighbour indexing
 	int leftid, rightid;
-	if(myid==0){
-		leftid = MPI_PROC_NULL;
-	}else{
+	if(myid!=0){
 		leftid = myid -1;
 	}
-	if(myid==worldSize-1){
-		rightid = MPI_PROC_NULL;
-	}else{
+    
+	if(myid!=worldSize-1){
 		rightid = myid +1;
 	}
+    
     if (atoi(argv[2]) == 1 && argc == 7) { //1D
 
 		if(myid == 0){
-			Wrapper firstBlock(1, blockSize+1);
+			Wrapper firstBlock(1, blockSize + 1);
 			//boundary left
 			firstBlock.arrayA[0] = left;
 			firstBlock.arrayB[0] = left;
@@ -80,7 +81,6 @@ int main(int argc, char* argv[]) {
 				}
 				MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
 				if(reducedProgress < epsilon){
-					cout << "blocksize: " << blockSize << endl;
 					//send result - none master //collect data
 					float *result = new float[size];
 					for(int i = 1; i< blockSize+1; i++){
@@ -98,34 +98,34 @@ int main(int argc, char* argv[]) {
 					break;
 				}
 				MPI_Send(&firstBlock.arrayA[blockSize], 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD);
-				MPI_Recv(&firstBlock.arrayA[blockSize +1], 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&firstBlock.arrayA[blockSize + 1], 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			}	
 			//
-		}else if(myid==(worldSize-1)){
-			Wrapper lastBlock(1, blockSize + size%worldSize + 1);
+		}else if(myid == (worldSize-1) ){
+			Wrapper lastBlock(1, blockSize + size % worldSize + 1);
 			//boundary right
-			lastBlock.arrayA[blockSize + size%worldSize+2] = right;
-			lastBlock.arrayB[blockSize + size%worldSize+2] = right;
+			lastBlock.arrayA[blockSize + size % worldSize+ 2] = right;
+			lastBlock.arrayB[blockSize + size % worldSize+ 2] = right;
 			
 				//cout << "id: " << myid << endl;
 			while(true){
 				float progress = 0;
-				for (int i=1; i<blockSize + size%worldSize + 1; ++i){
-					lastBlock.arrayB[i] = (lastBlock.arrayA[i-1] + lastBlock.arrayA[i] + lastBlock.arrayA[i + 1])/3; 
+				for (int i=1; i<blockSize + size % worldSize + 2; ++i){
+					lastBlock.arrayB[i] = (lastBlock.arrayA[i - 1] + lastBlock.arrayA[i] + lastBlock.arrayA[i + 1]) / 3;
 					//progress += std::abs(myBlock.arrayB[i]-myBlock.arrayA[i]);
 				}
-				for (int i=2; i<blockSize + size%worldSize + 2; ++i){
-					lastBlock.arrayA[i] = (lastBlock.arrayB[i-1] + lastBlock.arrayB[i] + lastBlock.arrayB[i + 1])/3;
-					progress += std::abs(lastBlock.arrayB[i]-lastBlock.arrayA[i]);
+				for (int i=2; i<blockSize + size % worldSize + 2; ++i){
+					lastBlock.arrayA[i] = (lastBlock.arrayB[i - 1] + lastBlock.arrayB[i] + lastBlock.arrayB[i + 1]) / 3;
+					progress += std::abs(lastBlock.arrayB[i] - lastBlock.arrayA[i]);
 				}
 				MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
 				if(reducedProgress < epsilon){
 					//send result
 					cout << "blocksize: " << blockSize << endl;
-					for(int i = 0; i< blockSize + size%worldSize+ 4; i++)
+					for(int i = 0; i< blockSize + size % worldSize + 3; i++)
 						cout << lastBlock.arrayA[i] << " ";
 					cout << endl;
-					MPI_Send(&lastBlock.arrayA[2], blockSize + size%worldSize, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
+					MPI_Send(&lastBlock.arrayA[2], blockSize + size % worldSize, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
 					break;
 				}
 				//cout << "id: " << myid << endl;
@@ -134,16 +134,16 @@ int main(int argc, char* argv[]) {
 				
 			}	
 		}else {
-			Wrapper myBlock(1, blockSize+2);
+			Wrapper myBlock(1, blockSize + 2);
 			
 			while(true){
 				float progress = 0;
-				for (int i=1; i<blockSize -1; ++i){
-					myBlock.arrayB[i] = (myBlock.arrayA[i-1] + myBlock.arrayA[i] + myBlock.arrayA[i + 1])/3; 
+				for (int i = 1; i< blockSize - 1; ++i){
+					myBlock.arrayB[i] = (myBlock.arrayA[i - 1] + myBlock.arrayA[i] + myBlock.arrayA[i + 1]) / 3;
 					//progress += std::abs(myBlock.arrayB[i]-myBlock.arrayA[i]);
 				}
-				for (int i=2; i<blockSize -2; ++i){
-					myBlock.arrayA[i] = (myBlock.arrayB[i-1] + myBlock.arrayB[i] + myBlock.arrayB[i + 1])/3;
+				for (int i=2; i < blockSize - 2; ++i){
+					myBlock.arrayA[i] = (myBlock.arrayB[i - 1] + myBlock.arrayB[i] + myBlock.arrayB[i + 1]) / 3;
 					progress += std::abs(myBlock.arrayB[i]-myBlock.arrayA[i]);
 				}
 				MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
 				MPI_Send(&myBlock.arrayA[2], 2, MPI_FLOAT, leftid, 0, MPI_COMM_WORLD);
 				MPI_Send(&myBlock.arrayA[blockSize], 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD);
 				MPI_Recv(&myBlock.arrayA[0], 2, MPI_FLOAT, leftid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Recv(&myBlock.arrayA[blockSize +2], 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&myBlock.arrayA[blockSize + 2], 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			}
 		}
 		
@@ -181,5 +181,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 	cout << "destroy: " << myid << endl;
-	MPI_Finalize(); 
+	MPI_Finalize();
+    
+    return EXIT_SUCCESS;
 }
