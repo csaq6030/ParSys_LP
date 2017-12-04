@@ -38,8 +38,9 @@ int main(int argc, char** argv) {
 	int subIter;
 	int reducedCount;
 	double x, y;
-	MPI_Init(NULL, NULL);					//Start MPI
-	MPI_Comm_rank(MPI_COMM_WORLD, &myid);	//get rank/id of process
+	// start(std::chrono::high_resolution_clock::now());
+	MPI_Init(NULL, NULL);				
+	MPI_Comm_rank(MPI_COMM_WORLD, &myid);	
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 	subIter = n/(unsigned long)size;
@@ -49,7 +50,6 @@ int main(int argc, char** argv) {
 	uniform_real_distribution<double> dis(0, 1.0);
 	int i;
 	if(myid == 0){
-		
 		for (i=0; i<subIter + n%size; ++i){
 			x = dis(gen);
 			y = dis(gen);
@@ -74,6 +74,9 @@ int main(int argc, char** argv) {
 		cout << fixed;
 		cout<< "Estimated value of pi is: " << pi << endl;
 		cout<< "Actual    Value of pi is: 3.14159265359" << endl;
+
+		//auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+		//cout << elapsed.count() << std::endl;
 	}
 
 
