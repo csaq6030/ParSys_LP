@@ -38,4 +38,5 @@
 # on fewer cores, but not less than 8.
 ##  #$ -pe openmpi-fillup 8-16
 
+module load openmpi/2.1.1
 mpirun -np $NSLOTS ./a.out 100000000
