@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Name your job. Unless you use the -o and -e options, output will
-# go to a unique file name.ojob_id for each job.
-#$ -N monteCarloPi
-
 # Execute job in the queue "std.q" unless you have special requirements.
 #$ -q std.q
 
 # The batch system should use the current directory as working directory.
 #$ -cwd
+
+# Name your job. Unless you use the -o and -e options, output will
+# go to a unique file name.ojob_id for each job.
+#$ -N monteCarloMPI
 
 # Redirect output stream to this file.
 #$ -o output.dat
@@ -16,24 +16,26 @@
 # Join the error stream to the output stream.
 #$ -j yes
 
-# Send status information to this email address. 
-#$ -M Chhong.Lee@student.uibk.ac.at
+# Send status information to this email address.
+#$ -M Philipp.Pobitzer@student.uibk.ac.at
 
-# Send me an e-mail when the job has finished. 
+# Send me an e-mail when the job has finished.
 #$ -m e
 
-# Use the parallel environment "openmp" with 8 job slots. Each requested
-# job slot will be assigned one core on the execution host.
-#$ -pe openmp 1
+# Specify the amount of virtual memory given to each MPI process
+# in the job.
+#$ -l h_vmem=1G
 
-# Allocate 2 Gigabytes per job slot.
-# The total memory available to your program
-# (i.e. the UNIX "ulimit -v" value) will be the
-# product of job slots from the -pe directive
-# times the h_vmem requirement. For the present
-# example, the job will get 16GB of virtual memory.
-#$ -l h_vmem=2G
+# Use the parallel environment "openmpi-fillup", which assigns as many processes
+# as available on each host. Start 16 MPI processes across an arbitrary number of
+# hosts. For each process, SGE will reserve one CPU-core.
+#$ -pe openmpi-fillup 16
 
-# tell OpenMP how many threads to start
+## ALTERNATIVE
+# Use the parallel environment "openmpi-fillup", which assigns as many processes
+# as available on each host. If there are not enough machines to run the MPI job
+# on the maximum of 16 cores, the batch system will gradually try to run the job
+# on fewer cores, but not less than 8.
+##  #$ -pe openmpi-fillup 8-16
 
-./job_script_helper.sh
+mpirun -np $NSLOTS ./a.out 100000000
