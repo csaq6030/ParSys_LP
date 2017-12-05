@@ -10,14 +10,15 @@
 using namespace std;
 
 void printError() {
-    cout << "Usage: [number of threads] [dimension] [size] [epsilon] [left] [right] [up] [down] [front] [back]" << endl
+    cout << "Usage: [output] [dimension] [size] [epsilon] [left] [right] [up] [down] [front] [back]" << endl
+    << "1 for output 0 for limited"
     << "up and down are needed only for 2D and 3D" << endl
-    << "front and back only for 3D" << endl
-    << "num of number of threads is ignored, just input something in this place" << endl;
+    << "front and back only for 3D" << endl;
 }
 
 
 int main(int argc, char* argv[]) {
+    int output = 0;
     int dim = 0;
     int size = 0;
     float epsilon = 0.;
@@ -40,7 +41,7 @@ int main(int argc, char* argv[]) {
 
     
     if (argc >= 7) {
-		//omp_set_num_threads(atoi(argv[1]));
+		output = atoi(argv[1]);
 
         dim = atoi(argv[2]);
         size = atoi(argv[3]);
@@ -93,9 +94,11 @@ int main(int argc, char* argv[]) {
 						MPI_Recv(&result[i*blockSize], blockSize, MPI_FLOAT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 					}
 					MPI_Recv(&result[(worldSize-1)*blockSize], blockSize+size%worldSize, MPI_FLOAT, worldSize-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-					for(int i = 0; i< size; i++){
-						cout << result[i] << "  ";
-					}
+                    if(output) {
+                        for(int i = 0; i< size; i++){
+                            cout << result[i] << "  ";
+                        }
+                    }
 					cout << endl;
 					delete[] result;
 					break;
@@ -244,13 +247,15 @@ int main(int argc, char* argv[]) {
                     delete[] tmp2;
                     
                     //Print result
-                    for(int i = 0; i < size; i++){
-                        for (int j = 0; j < size; j++) {
-                            cout << result[i * size + j] << "  ";
+                    if (output) {
+                        for(int i = 0; i < size; i++){
+                            for (int j = 0; j < size; j++) {
+                                cout << result[i * size + j] << "  ";
+                            }
+                            cout << endl;
                         }
-                        cout << endl;
-                    }
                     cout << endl;
+                    }
                     
                     delete[] buffer;
                     delete[] result;
