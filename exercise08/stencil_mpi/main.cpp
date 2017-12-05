@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
         right = atof(argv[6]);
     }
 
-	const int blockSize = size/(int)worldSize;
+	
 	
     //neighbour indexing
 	int leftid, rightid;
@@ -61,10 +61,13 @@ int main(int argc, char* argv[]) {
 		rightid = myid +1;
 	}
     
+    const int blockSize = size/(int)worldSize;
+    
     if (atoi(argv[2]) == 1 && argc == 7) { //1D
-
+        
+        
 		if(myid == 0){
-			Wrapper firstBlock(1, blockSize + 1);
+			Wrapper firstBlock(1, blockSize + 1); // wrapper has internal +2
 			//boundary left
 			firstBlock.arrayA[0] = left;
 			firstBlock.arrayB[0] = left;
@@ -102,7 +105,7 @@ int main(int argc, char* argv[]) {
 			}	
 			//
 		}else if(myid == (worldSize-1) ){
-			Wrapper lastBlock(1, blockSize + size % worldSize + 1);
+			Wrapper lastBlock(1, blockSize + size % worldSize + 1); // wrapper has internal +2
 			//boundary right
 			lastBlock.arrayA[blockSize + size % worldSize+ 2] = right;
 			lastBlock.arrayB[blockSize + size % worldSize+ 2] = right;
@@ -134,7 +137,7 @@ int main(int argc, char* argv[]) {
 				
 			}	
 		}else {
-			Wrapper myBlock(1, blockSize + 2);
+			Wrapper myBlock(1, blockSize + 2); // wrapper has internal +2
 			
 			while(true){
 				float progress = 0;
@@ -164,6 +167,337 @@ int main(int argc, char* argv[]) {
     } else if (atoi(argv[2]) == 2 && argc == 9) { //2D
         const float up = atof(argv[7]);
         const float down = atof(argv[8]);
+        
+        
+        if(myid == 0){ // first stripe
+            const int n = size + 2; //m equals i in A[i][j]
+            const int m = (blockSize + 3); //m equals j in A[i][j]
+            
+            float *arrayA = new float[n * m]();
+            float *arrayB = new float[n * m]();
+            //boundary left
+            for (int i = 0; i < n; i++) {
+                arrayA[i * m] = left;
+                arrayB[i * m] = left;
+            }
+            
+            //boundary up and down
+            for (int i = 0; i < m; i++) {
+                arrayA[i] = up;
+                arrayB[i] = up;
+                
+                arrayA[(n-1) * m + i] = down; //works because m - n == 1 and the last element is never used
+                arrayB[(n-1) * m + i] = down;
+            }
+            
+            cout << "done init first" << endl;
+            float *buffer = new float[size * 2]();
+            
+            while(true){
+                float progress = 0;
+                for (int i= 1; i < n - 1; i++){
+                    for (int j = 1; j < m - 1; j++) {
+                    arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
+                                         arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
+                    }
+                }
+                
+                for (int i= 1; i < n - 1; i++){
+                    for (int j = 1; j < m - 2; j++) {
+                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
+                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
+                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
+                    }
+                }
+                //cout << "iter first" << endl;
+                MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+                if(reducedProgress < epsilon){
+                    //send result - none master //collect data
+                    //own
+                    float *result = new float[size * size]();
+                    for(int i = 1; i < size + 1; i++){
+                        for (int j = 1; j < blockSize + 1; j++) {
+                            result[(i - 1) * size + (j - 1)] = arrayA[i * m + j];
+                        }
+                    }
+                    //other
+                    float *tmp1 = new float[size * blockSize]();
+                    for(int b = 1; b < worldSize - 1; b++){
+                        MPI_Recv(tmp1, size * blockSize, MPI_FLOAT, b, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                        for(int i = 0; i < size; i++){
+                            for (int j = 0; j < blockSize; j++) {
+                                result[i * size + j + b * blockSize] = tmp1[i * blockSize * m + j];
+                            }
+                        }
+                    }
+                    delete[] tmp1;
+                    
+                    float *tmp2 = new float[size * blockSize + size % worldSize]();
+                    //last result
+                    MPI_Recv(tmp2,size * (blockSize + size % worldSize), MPI_FLOAT, worldSize-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    for(int i = 0; i < size ; i++){
+                        for (int j = 0; j < blockSize + size % worldSize; j++) {
+                            result[i * size + j + (worldSize - 1) * blockSize] = tmp2[i * (blockSize + size % worldSize) + j];
+                            //result[i * size + j + (worldSize - 1) * blockSize] = 1111; //little test
+                        }
+                    }
+                    delete[] tmp2;
+                    
+                    //Print result
+                    for(int i = 0; i < size; i++){
+                        for (int j = 0; j < size; j++) {
+                            cout << result[i * size + j] << "  ";
+                        }
+                        cout << endl;
+                    }
+                    cout << endl;
+                    
+                    delete[] buffer;
+                    delete[] result;
+                    delete[] arrayA;
+                    delete[] arrayB;
+                    break;
+                }
+                
+                //fill buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = blockSize - 1; j < blockSize + 1; j++) {
+                        buffer[(i - 1) * 2 + j - blockSize + 1] = arrayA[i * m + j];
+                    }
+                }
+                
+                MPI_Send(buffer, size * 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD);
+                MPI_Recv(buffer, size * 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                
+                /* //Print buffer
+                for (int i = 0; i < size; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        cout << buffer[i * 2 + j] << " ";
+                    }
+                    cout << endl;
+                }
+                cout << endl; */
+                
+                //read buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        arrayA[i * m + j + blockSize + 1] = buffer[(i - 1) * 2 + j];
+                    }
+                }
+                
+                
+            }
+        }else if(myid == (worldSize-1) ){ //last stripe
+            const int n = size + 2; //m equals i in A[i][j]
+            const int m = (blockSize + 3 + size % worldSize); //m equals j in A[i][j]
+            
+            float *arrayA = new float[n * m]();
+            float *arrayB = new float[n * m]();
+            
+            //boundary right
+            for (int i = 0; i < n; i++) {
+                arrayA[i * m + m - 1] = right;
+                arrayB[i * m  + m - 1] = right;
+            }
+            
+            //boundary up and down
+            for (int i = 0; i < m; i++) {
+                arrayA[i] = up;
+                arrayB[i] = up;
+                
+                arrayA[(n-1) * m + i] = down;
+                arrayB[(n-1) * m + i] = down;
+            }
+            
+            /*
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < m; j++) {
+                    cout << arrayA[i * m + j] << " ";
+                }
+                cout << endl;
+            }
+            cout << endl; */
+            
+            float *buffer = new float[size * 2]();
+            
+            cout << "done init last" << endl;
+            
+            while(true){
+                float progress = 0;
+                for (int i = 1; i < n - 1; i++){
+                    for (int j = 1; j < m - 1; j++) {
+                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
+                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
+                    }
+                }
+                
+                for (int i = 1; i < n - 1; i++){
+                    for (int j = 2; j < m - 1; j++) {
+                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
+                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
+                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
+                    }
+                }
+                //cout << "iter last" << endl;
+                MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+                if(reducedProgress < epsilon){
+                    cout << "result last sending" << endl;
+                    //send result
+                    float *tmp = new float[size * (blockSize + size % worldSize)]();
+                    
+                    for (int i = 1; i < size + 1; i++) {
+                        for (int j = 2; j < m - 1; j++) {
+                            tmp[(i - 1) * (blockSize + size % worldSize) + (j - 2)] = arrayA[i * m + j];
+                        }
+                    }
+                    
+                    
+                    for (int i = 0; i < n; i++) {
+                        for (int j = 0; j < m; j++) {
+                            cout << arrayA[i * m + j] << " ";
+                        }
+                        cout << endl;
+                    }
+                    cout << endl;
+                    
+                    for (int i = 0; i < size; i++) {
+                        for (int j = 0; j < blockSize + size % worldSize; j++) {
+                            cout << tmp[i * (blockSize + size % worldSize) + j] << " ";
+                        }
+                        cout << endl;
+                    }
+                    cout << endl;
+                    
+                    
+                    MPI_Send(tmp, (blockSize + size % worldSize) * size, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
+                    
+                    delete[] tmp;
+                    delete[] buffer;
+                    delete[] arrayA;
+                    delete[] arrayB;
+                    break;
+                }
+                //cout << "fill buffer last" << endl;
+                //fill buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 2; j < 4; j++) {
+                        buffer[(i - 1) * 2 + j - 2] = arrayA[i * m + j];
+                    }
+                }
+                //cout << "done fill buffer last, now sending" << endl;
+                MPI_Send(buffer, size * 2, MPI_FLOAT, leftid, 0, MPI_COMM_WORLD);
+                //cout << "send last, now recv" << endl;
+                MPI_Recv(buffer, size * 2, MPI_FLOAT, leftid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                //cout << "done recv last, now reading buffer" << endl;
+                
+                //print buffer
+                /*
+                for (int i = 0; i < size; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        cout << buffer[i * 2 + j] << " ";
+                    }
+                    cout << endl;
+                } */
+                
+                //read buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        //cout << "i: " << i << " " << "j: " << j << endl;
+                        arrayA[i * m + j] = buffer[(i - 1) * 2 + j];
+                    }
+                }
+                
+                //cout << "done reading buffer last" << endl;
+                
+            }
+        }else {
+            const int n = size + 2; //m equals i in A[i][j]
+            const int m = (blockSize + 4); //m equals j in A[i][j]
+            
+            float *arrayA = new float[n * m]();
+            float *arrayB = new float[n * m]();
+            
+            //boundary up and down
+            for (int i = 0; i < m; i++) {
+                arrayA[i] = up;
+                arrayB[i] = up;
+                
+                arrayA[(n-1) * m + i] = down; //works because m - n == 1 and the last element is never used
+                arrayB[(n-1) * m + i] = down;
+            }
+            
+            float *bufferL = new float[size * 2]();
+            float *bufferR = new float[size * 2]();
+            
+            while(true){
+                float progress = 0;
+                for (int i = 1; i < n - 1; i++){
+                    for (int j = 1; j < m - 1; j++) {
+                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
+                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
+                    }
+                }
+                
+                for (int i = 1; i < n - 1; i++){
+                    for (int j = 2; j < m - 2; j++) {
+                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
+                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
+                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
+                    }
+                }
+                MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+                if(reducedProgress < epsilon){
+                    //send result
+                    float *tmp = new float[size * blockSize]();
+                    
+                    for (int i = 1; i < n - 1; i++) {
+                        for (int j = 2; j < m - 2; j++) {
+                            tmp[(i - 1) * size + (j - 1)] = arrayA[i * m + j];
+                        }
+                    }
+                    
+                    MPI_Send(tmp, blockSize * size, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
+                    
+                    delete[] tmp;
+                    delete[] bufferL;
+                    delete[] bufferR;
+                    delete[] arrayA;
+                    delete[] arrayB;
+                    break;
+                }
+                
+                //fill buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 2; j < 4; j++) {
+                        bufferL[(i - 1) * 2 + j - 2] = arrayA[i * m + j];
+                    }
+                }
+                
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = blockSize; j < blockSize + 2; j++) {
+                        bufferR[(i - 1) * 2 + j - blockSize] = arrayA[i * m + j];
+                    }
+                }
+                
+                MPI_Send(bufferL, size * 2, MPI_FLOAT, leftid, 0, MPI_COMM_WORLD);
+                MPI_Send(bufferR, size * 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD);
+                MPI_Recv(bufferL, size * 2, MPI_FLOAT, leftid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(bufferR, size * 2, MPI_FLOAT, rightid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                
+                //read buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        arrayA[i * m + j] = bufferL[(i - 1) * 2 + j];
+                    }
+                }
+                
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        arrayA[i * m + j + blockSize + 2] = bufferR[(i - 1) * 2 + j];
+                    }
+                }
+            }
+        }
 
         
     } else if (atoi(argv[2]) == 3 && argc == 11) { //3D
