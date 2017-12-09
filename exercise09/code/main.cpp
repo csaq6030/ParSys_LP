@@ -63,6 +63,27 @@ inline void print2DarrayBlock (double *array, const int start_i, const int start
     
 }
 
+inline double stencil2D(double *arrayB, double *arrayA, const int m, const int start_i_1, const int start_j_1,
+                 const int end_i_1, const int end_j_1, const int start_i_2, const int start_j_2, const int end_i_2,
+                 const int end_j_2) {
+    double progress = 0;
+    for (int i = start_i_1; i < end_i_1; i++){
+                    for (int j = start_j_1; j < end_j_1; j++) {
+                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
+                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
+                    }
+                }
+
+    for (int i = start_i_2; i < end_i_2; i++){
+                    for (int j = start_j_2; j < end_j_2; j++) {
+                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
+                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
+                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
+                    }
+                }
+    return progress;
+}
+
 int main(int argc, char* argv[]) {
     const bool output = true;
     
@@ -143,21 +164,9 @@ int main(int argc, char* argv[]) {
             double *buffer = new double[size * 2]();
             
             while(true){
-                double progress = 0;
-                for (int i= 1; i < n - 1; i++){
-                    for (int j = 1; j < m - 1; j++) {
-                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
-                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
-                    }
-                }
-                
-                for (int i= 1; i < n - 1; i++){
-                    for (int j = 1; j < m - 2; j++) {
-                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
-                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
-                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
-                    }
-                }
+
+                double progress = stencil2D(arrayB, arrayA, m, 1, 1, n - 1, m - 1, 1,
+                                            1, n - 1, m - 2);
                 //cout << "iter first" << endl;
                 MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                 if(reducedProgress < epsilon){
@@ -245,24 +254,13 @@ int main(int argc, char* argv[]) {
             
             double *buffer = new double[size * 2]();
             
-            cout << "done init last" << endl;
+            //cout << "done init last" << endl;
             
             while(true){
-                double progress = 0;
-                for (int i = 1; i < n - 1; i++){
-                    for (int j = 1; j < m - 1; j++) {
-                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
-                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
-                    }
-                }
-                
-                for (int i = 1; i < n - 1; i++){
-                    for (int j = 2; j < m - 1; j++) {
-                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
-                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
-                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
-                    }
-                }
+
+                double progress = stencil2D(arrayB, arrayA, m, 1, 1, n - 1, m - 1, 1,
+                                            2, n - 1, m - 1);
+
                 //cout << "iter last" << endl;
                 MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                 if(reducedProgress < epsilon){
