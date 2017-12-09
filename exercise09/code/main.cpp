@@ -309,6 +309,9 @@ int main(int argc, char* argv[]) {
             }
             
         }
+    } else { // othe worldsizes 2 cases missing square ones (4,16,64) and m != n ones (8 (4*2 || 2* 4), 32 (8*4 || 4 * 8))
+
+
     }
     
     
