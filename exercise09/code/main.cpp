@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
     double reducedProgress = 0.;
     int iter = 0;
     
-    const double epsilon = 1.; // 10 or 100 for 512 or 768 according
+    const double epsilon = 100.; // 10 or 100 for 512 or 768 according
     
     //init mpi
     int myid, worldSize;
@@ -126,8 +126,8 @@ int main(int argc, char* argv[]) {
 
             iter += 2;
 
-            //if (iter == 14)
-            //    break;
+            if (iter == 2)
+                break;
         }
         
         if (output) {
@@ -456,7 +456,7 @@ int main(int argc, char* argv[]) {
             // calculate border values
             // first iteration, calculate only when neighbor exist -> ignore when borderline
             for(int i = 1; i < 5; i++){
-                for(int j = 2; j < blockSize-2; j++){
+                for(int j = 1; j < blockSize-1; j++){
                     // top border cells
                     if(i > 1 || (upid != MPI_PROC_NULL && i == 1)){
                         arrayB[i*blockSize + j] = (arrayA[i*blockSize + j] + arrayA[(i-1)*blockSize + j] + arrayA[(i+1)*blockSize + j]
