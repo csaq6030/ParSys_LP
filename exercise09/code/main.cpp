@@ -517,7 +517,7 @@ int main(int argc, char* argv[]) {
         //cout << myid <<endl;
 
 
-        if (output && false) {
+        if (output) {
             int i = 0;
             if(myid==0){
                 print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
