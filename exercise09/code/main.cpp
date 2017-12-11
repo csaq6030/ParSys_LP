@@ -118,11 +118,18 @@ int main(int argc, char* argv[]) {
         border1Array(arrayA, arrayB, size + 2, up, down, left, right);
         //print2Darray(arrayA, 0, 0,size + 2, size + 2);
         
+        //int iterCount = 0;
         while (stencil1Array(arrayA, arrayB, size + 2) >= epsilon) {
+            /*
+            iterCount += 2;
+            if (iterCount == 4)
+                break; */
             }
         
         if (output) {
             print2Darray(arrayA, 1, 1,size + 1, size + 1);
+
+            //cout << "iter: " << iterCount << endl;
         }
         
     
@@ -309,7 +316,45 @@ int main(int argc, char* argv[]) {
             }
             
         }
-    } else { // othe worldsizes 2 cases missing square ones (4,16,64) and m != n ones (8 (4*2 || 2* 4), 32 (8*4 || 4 * 8))
+    } else if (int (sqrt(worldSize)) * int (sqrt(worldSize)) == worldSize){ //square case
+
+
+    } else { //not square ones (8 (2*4), 32 (2*16))
+        const int columnSize = worldSize / 2;
+        int leftid, rightid, upid, downid;
+
+        if (myid == 0) { //  upper left corner
+            leftid = MPI_PROC_NULL;
+            rightid = 1;
+            upid = MPI_PROC_NULL;
+            downid = columnSize;
+        } else if ( myid < columnSize - 1){ // upper row minus right corner
+            leftid = myid - 1;
+            rightid = myid + 1;
+            upid = MPI_PROC_NULL;
+            downid = myid + columnSize;
+        } else if (myid == columnSize - 1 ) { // upper right corner
+            leftid = myid - 1;
+            rightid = MPI_PROC_NULL;
+            upid = MPI_PROC_NULL;
+            downid = myid + columnSize;
+        } else if (myid == columnSize) { // lower left corner
+            leftid = MPI_PROC_NULL;
+            rightid = myid + 1;
+            upid = 0;
+            downid = MPI_PROC_NULL;
+        } else if (myid < worldSize - 1) { // lower row minus right corner
+            leftid = myid - 1;
+            rightid = myid + 1;
+            upid = myid - columnSize;
+            downid = MPI_PROC_NULL;
+        } else { // right corner
+            leftid = myid - 1;
+            rightid = MPI_PROC_NULL;
+            upid = myid - columnSize;
+            downid = MPI_PROC_NULL;
+        }
+
 
 
     }
