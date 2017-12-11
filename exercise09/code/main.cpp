@@ -99,6 +99,9 @@ int main(int argc, char* argv[]) {
     
     const double epsilon = 0.; // 10 or 100 for 512 or 768 according
     
+    cout.precision(4);
+    cout << fixed;
+    
     //init mpi
     int myid, worldSize;
     MPI_Init(&argc, &argv);
@@ -589,7 +592,10 @@ int main(int argc, char* argv[]) {
 
         
         //cout << myid <<endl;
-        
+        if(myid==0 && output){
+            cout << "Iterations: " << iter << endl;
+        }
+
         if (output) {
             int i = 0;
             if(myid==0){
@@ -605,10 +611,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        if(myid==0 && output){
-            cout << "Iterations: " << iter << endl;
-        }
-
+        
 
         delete[] arrayA;
         delete[] arrayB;
