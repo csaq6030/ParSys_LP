@@ -72,179 +72,221 @@ int main(int argc, char* argv[]) {
         
         
     } else if (worldSize == 2) {
-        const int blockSize = size / 2;
+        const int blockSize = size/(int)worldSize;
         const int n = size + 2; //m equals i in A[i][j]
         const int m = (blockSize + 3); //m equals j in A[i][j]
-        
-        if (myid == 0) { //left
-            
-            double *arrayA = new double[n * m]();
-            double *arrayB = new double[n * m]();
+
+        if(myid == 0){ // first stripe
+
+
+            float *arrayA = new float[n * m]();
+            float *arrayB = new float[n * m]();
             //boundary left
             for (int i = 0; i < n; i++) {
                 arrayA[i * m] = left;
                 arrayB[i * m] = left;
             }
-            
+
             //boundary up and down
             for (int i = 0; i < m; i++) {
                 arrayA[i] = up;
                 arrayB[i] = up;
-                
-                arrayA[(n-1) * m + i] = down;
+
+                arrayA[(n-1) * m + i] = down; //works because m - n == 1 and the last element is never used
                 arrayB[(n-1) * m + i] = down;
             }
-            
-            //cout << "done init first" << endl;
-            double *buffer = new double[size * 2]();
-            
-            while(true){
 
-                double progress = stencil2D(arrayB, arrayA, m, 1, 1, n - 1, m - 1, 1,
-                                            1, n - 1, m - 2);
+            //cout << "done init first" << endl;
+            float *buffer = new float[size * 2]();
+
+            while(true){
+                float progress = 0;
+                for (int i= 1; i < n - 1; i++){
+                    for (int j = 1; j < m - 1; j++) {
+                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
+                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
+                    }
+                }
+
+                for (int i= 1; i < n - 1; i++){
+                    for (int j = 1; j < m - 2; j++) {
+                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
+                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
+                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
+                    }
+                }
                 //cout << "iter first" << endl;
-                MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
                 if(reducedProgress < epsilon){
                     //send result - none master //collect data
                     //own
-                    double *result = new double[size * size]();
+                    float *result = new float[size * size]();
                     for(int i = 1; i < size + 1; i++){
                         for (int j = 1; j < blockSize + 1; j++) {
                             result[(i - 1) * size + (j - 1)] = arrayA[i * m + j];
                         }
                     }
                     //other
-                    
-                    double *tmp2 = new double[size * blockSize]();
+                    float *tmp1 = new float[size * blockSize]();
+                    for(int b = 1; b < worldSize - 1; b++){
+                        MPI_Recv(tmp1, size * blockSize, MPI_FLOAT, b, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                        for(int i = 0; i < size; i++){
+                            for (int j = 0; j < blockSize; j++) {
+                                result[i * size + j + b * blockSize] = tmp1[i * blockSize + j];
+                            }
+                        }
+                    }
+                    delete[] tmp1;
+
+                    float *tmp2 = new float[size * blockSize + size % worldSize]();
                     //last result
-                    MPI_Recv(tmp2,size * blockSize, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(tmp2,size * (blockSize + size % worldSize), MPI_FLOAT, worldSize-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     for(int i = 0; i < size ; i++){
-                        for (int j = 0; j < blockSize; j++) {
-                            result[i * size + j + blockSize] = tmp2[i * blockSize + j];
+                        for (int j = 0; j < blockSize + size % worldSize; j++) {
+                            result[i * size + j + (worldSize - 1) * blockSize] = tmp2[i * (blockSize + size % worldSize) + j];
                             //result[i * size + j + (worldSize - 1) * blockSize] = 1111; //little test
                         }
                     }
                     delete[] tmp2;
-                    
+
                     //Print result
                     if (output) {
-                        print2Darray(result, 0, 0, size, size, 0);
+                        for(int i = 0; i < size; i++){
+                            for (int j = 0; j < size; j++) {
+                                cout << result[i * size + j] << "  ";
+                            }
+                            cout << endl;
+                        }
+                        cout << endl;
                     }
-                    
+
                     delete[] buffer;
                     delete[] result;
                     delete[] arrayA;
                     delete[] arrayB;
                     break;
-                } else {
-                
-                    //fill buffer
-                    for (int i = 1; i < size + 1; i++) {
-                        for (int j = blockSize - 1; j < blockSize + 1; j++) {
-                            buffer[(i - 1) * 2 + j - blockSize + 1] = arrayA[i * m + j];
-                        }
-                    }
-                    
-                    MPI_Send(buffer, size * 2, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
-                    MPI_Recv(buffer, size * 2, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    
-                    /* //Print buffer
-                     for (int i = 0; i < size; i++) {
-                        for (int j = 0; j < 2; j++) {
-                            cout << buffer[i * 2 + j] << " ";
-                        }
-                        cout << endl;
-                     }
-                     cout << endl; */
-                    
-                    //read buffer
-                    for (int i = 1; i < size + 1; i++) {
-                        for (int j = 0; j < 2; j++) {
-                            arrayA[i * m + j + blockSize + 1] = buffer[(i - 1) * 2 + j];
-                        }
+                }
+
+                //fill buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = blockSize - 1; j < blockSize + 1; j++) {
+                        buffer[(i - 1) * 2 + j - blockSize + 1] = arrayA[i * m + j];
                     }
                 }
+
+                MPI_Send(buffer, size * 2, MPI_FLOAT, 1, 0, MPI_COMM_WORLD);
+                MPI_Recv(buffer, size * 2, MPI_FLOAT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+
+                //read buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        arrayA[i * m + j + blockSize + 1] = buffer[(i - 1) * 2 + j];
+                    }
+                }
+
+
             }
-                
-                
-        } else { // right
-            double *arrayA = new double[n * m]();
-            double *arrayB = new double[n * m]();
-            
-            
+        }else if(myid == 1 ){ //last stripe
+
+            float *arrayA = new float[n * m]();
+            float *arrayB = new float[n * m]();
+
             //boundary right
             for (int i = 0; i < n; i++) {
                 arrayA[i * m + m - 1] = right;
                 arrayB[i * m  + m - 1] = right;
             }
-            
+
             //boundary up and down
             for (int i = 0; i < m; i++) {
                 arrayA[i] = up;
                 arrayB[i] = up;
-                
+
                 arrayA[(n-1) * m + i] = down;
                 arrayB[(n-1) * m + i] = down;
             }
-            
-            double *buffer = new double[size * 2]();
-            
+
+            float *buffer = new float[size * 2]();
+
             //cout << "done init last" << endl;
-            
+
             while(true){
+                float progress = 0;
+                for (int i = 1; i < n - 1; i++){
+                    for (int j = 1; j < m - 1; j++) {
+                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
+                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
+                    }
+                }
 
-                double progress = stencil2D(arrayB, arrayA, m, 1, 1, n - 1, m - 1, 1,
-                                            2, n - 1, m - 1);
-
+                for (int i = 1; i < n - 1; i++){
+                    for (int j = 2; j < m - 1; j++) {
+                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
+                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
+                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
+                    }
+                }
                 //cout << "iter last" << endl;
-                MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(&progress, &reducedProgress, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
                 if(reducedProgress < epsilon){
                     //cout << "result last sending" << endl;
                     //send result
-                    double *tmp = new double[size * blockSize]();
-                    
+                    float *tmp = new float[size * (blockSize + size % worldSize)]();
+
                     for (int i = 1; i < size + 1; i++) {
                         for (int j = 2; j < m - 1; j++) {
-                            tmp[(i - 1) * blockSize + (j - 2)] = arrayA[i * m + j];
+                            tmp[(i - 1) * (blockSize + size % worldSize) + (j - 2)] = arrayA[i * m + j];
                         }
                     }
-                    
-                    
-                    
-                    MPI_Send(tmp, blockSize * size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-                    
+
+
+
+                    MPI_Send(tmp, (blockSize + size % worldSize) * size, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
+
                     delete[] tmp;
                     delete[] buffer;
                     delete[] arrayA;
                     delete[] arrayB;
                     break;
-                } else {
-                    //cout << "fill buffer last" << endl;
-                    //fill buffer
-                    for (int i = 1; i < size + 1; i++) {
-                        for (int j = 2; j < 4; j++) {
-                            buffer[(i - 1) * 2 + j - 2] = arrayA[i * m + j];
-                        }
-                    }
-                    //cout << "done fill buffer last, now sending" << endl;
-                    MPI_Send(buffer, size * 2, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-                    //cout << "send last, now recv" << endl;
-                    MPI_Recv(buffer, size * 2, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    //cout << "done recv last, now reading buffer" << endl;
-                    
-                    //read buffer
-                    for (int i = 1; i < size + 1; i++) {
-                        for (int j = 0; j < 2; j++) {
-                            //cout << "i: " << i << " " << "j: " << j << endl;
-                            arrayA[i * m + j] = buffer[(i - 1) * 2 + j];
-                        }
-                    }
-                    
-                    //cout << "done reading buffer last" << endl;
                 }
+                //cout << "fill buffer last" << endl;
+                //fill buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 2; j < 4; j++) {
+                        buffer[(i - 1) * 2 + j - 2] = arrayA[i * m + j];
+                    }
+                }
+                //cout << "done fill buffer last, now sending" << endl;
+                MPI_Send(buffer, size * 2, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
+                //cout << "send last, now recv" << endl;
+                MPI_Recv(buffer, size * 2, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                //cout << "done recv last, now reading buffer" << endl;
+
+                //print buffer
+                /*
+                for (int i = 0; i < size; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        cout << buffer[i * 2 + j] << " ";
+                    }
+                    cout << endl;
+                } */
+
+                //read buffer
+                for (int i = 1; i < size + 1; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        //cout << "i: " << i << " " << "j: " << j << endl;
+                        arrayA[i * m + j] = buffer[(i - 1) * 2 + j];
+                    }
+                }
+
+                //cout << "done reading buffer last" << endl;
+
             }
-            
+
         }
+
+
     } else if (int (sqrt(worldSize)) * int (sqrt(worldSize)) == worldSize){ //square case
         // neighbor indexing for x*x=worldSize and initialize array
         int leftid, rightid, upid, downid;
