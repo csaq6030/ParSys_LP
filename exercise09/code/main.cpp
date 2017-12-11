@@ -91,9 +91,9 @@ int main(int argc, char* argv[]) {
     const int size = 512; //512 or 768
     
     const double up = 1.;
-    const double down = 1;//0.;
-    const double left = 1;//-0.5;
-    const double right = 1;//0.5;
+    const double down = 0;//0.;
+    const double left = -0.5;//-0.5;
+    const double right = 0.5;//0.5;
     double reducedProgress = 0.;
     int iter = 0;
     
@@ -125,13 +125,14 @@ int main(int argc, char* argv[]) {
         //print2Darray(arrayA, 0, 0,size + 2, size + 2);
         
 
-        while (stencil1Array(arrayA, arrayB, size + 2) >= epsilon) {
-
+        do {
             iter += 2;
 
             //if (iter == 20)
-                //break;
-        }
+            //break;
+        } while (stencil1Array(arrayA, arrayB, size + 2) >= epsilon);
+
+
         
         if (output) {
             print2Darray(arrayA, 0, 0,size + 2, size + 2, 0);
@@ -592,11 +593,9 @@ int main(int argc, char* argv[]) {
 
         
         //cout << myid <<endl;
-        if(myid==0 && output){
-            cout << "Iterations: " << iter << endl;
-        }
 
-        if (output) {
+
+        if (output && false) {
             int i = 0;
             if(myid==0){
                 print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
@@ -609,6 +608,10 @@ int main(int argc, char* argv[]) {
                 MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
                 print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
             }
+        }
+
+        if(myid==0 && output){
+            cout << "Iterations: " << iter << endl;
         }
 
         
