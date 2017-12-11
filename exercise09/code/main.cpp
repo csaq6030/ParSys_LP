@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
 
             iter += 2;
 
-            if (iter == 4)
+            if (iter == 20)
                 break;
         }
         
@@ -485,7 +485,7 @@ int main(int argc, char* argv[]) {
                 for(int i = 1; i < 5; i++){
                     // left border cells
                     if(i > 1 || (leftid != MPI_PROC_NULL && i == 1)){
-                        arrayB[j*blockSize + i] = (arrayA[j*blockSize + i] + arrayA[(j-1)*blockSize + i] + arrayA[(j-1)*blockSize + i]
+                        arrayB[j*blockSize + i] = (arrayA[j*blockSize + i] + arrayA[(j-1)*blockSize + i] + arrayA[(j+1)*blockSize + i]
                                                    + arrayA[j*blockSize + i - 1] + arrayA[j*blockSize + i + 1])/5;
                     }
                     // right border cells
@@ -517,7 +517,7 @@ int main(int argc, char* argv[]) {
             for(int j = 4; j < blockSize-4; j++){
                 for(int i = 2; i < 4; i++){
                     // left border cells
-                    arrayA[j*blockSize + i] = (arrayB[j*blockSize + i] + arrayB[(j-1)*blockSize + i] + arrayB[(j-1)*blockSize + i]
+                    arrayA[j*blockSize + i] = (arrayB[j*blockSize + i] + arrayB[(j-1)*blockSize + i] + arrayB[(j+1)*blockSize + i]
                                                + arrayB[j*blockSize + i - 1] + arrayB[j*blockSize + i + 1])/5;
                     // right border cells
                     arrayA[(j+1)*blockSize - 1 - i] = (arrayB[(j+1)*blockSize - 1 - i] + arrayB[(j)*blockSize - 1 - i] + arrayB[(j+2)*blockSize - 1 - i]
@@ -586,7 +586,7 @@ int main(int argc, char* argv[]) {
 
             // synchronize 
             MPI_Waitall(4, req, MPI_STATUSES_IGNORE);
-        }while(iter<4);
+        }while(iter<20);
 
 
 
