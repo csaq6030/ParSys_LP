@@ -8,7 +8,7 @@ using namespace std;
 
 
 int main(int argc, char* argv[]) {
-    const bool output = true;
+    const bool output = false;
     
     const int size = 512; //512 or 768
     
@@ -57,8 +57,7 @@ int main(int argc, char* argv[]) {
 
         
         if (output) {
-            print2Darray(arrayA, 0, 0,size + 2, size + 2, 0);
-
+            //print2Darray(arrayA, 0, 0,size + 2, size + 2, 0);
             cout << "iter: " << iter << endl;
         }
         
@@ -520,6 +519,7 @@ int main(int argc, char* argv[]) {
         if (output) {
             int i = 0;
             if(myid==0){
+                cout << "Iterations: " << iter << endl << endl;
                 print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
                 MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
             }else if(myid != worldSize-1){
@@ -531,12 +531,6 @@ int main(int argc, char* argv[]) {
                 print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
             }
         }
-
-        if(myid==0 && output){
-            cout << "Iterations: " << iter << endl;
-        }
-
-        
 
         delete[] arrayA;
         delete[] arrayB;
@@ -692,21 +686,6 @@ int main(int argc, char* argv[]) {
         double *rightBorder = new double[2*(jblockSize-4)]();
         double *leftRecvBuff = new double[2*(jblockSize-4)]();
         double *rightRecvBuff = new double[2*(jblockSize-4)]();
-
-        if (false) {
-            int i = 0;
-            if(myid==0){
-                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
-                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
-            }else if(myid != worldSize-1){
-                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
-                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
-                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
-            }else{
-                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
-                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
-            }
-        }
         
         double progress;
         do{
@@ -844,14 +823,21 @@ int main(int argc, char* argv[]) {
         }while(reducedProgress >= epsilon);
 
 
-
-        
-        //cout << myid <<endl;
-
-        if(myid==0 && output){
-            cout << "Iterations: " << iter << endl;
+        if (output) {
+            int i = 0;
+            if(myid==0){
+                cout << "Iterations: " << iter << endl << endl;
+                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
+                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
+            }else if(myid != worldSize-1){
+                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
+                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
+                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
+            }else{
+                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
+                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
+            }
         }
-
         
 
         delete[] arrayA;
