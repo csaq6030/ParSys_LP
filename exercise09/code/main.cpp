@@ -88,7 +88,7 @@ inline double stencil2D(double *arrayB, double *arrayA, const int m, const int s
 int main(int argc, char* argv[]) {
     const bool output = true;
     
-    const int size = 10; //512 or 768
+    const int size = 16; //512 or 768
     
     const double up = 1.;
     const double down = 0.;
@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
 
             iter += 2;
 
-            if (iter == 2)
+            if (iter == 14)
                 break;
         }
         
@@ -484,6 +484,11 @@ int main(int argc, char* argv[]) {
                     }
                 }
             }
+
+            if (output && myid == 0) {
+                print2Darray(arrayB, 0, 0, blockSize, blockSize, myid);
+            }
+
             // 2nd iteration
             for(int i = 2; i < 4; i++){
                 for(int j = 2; j < blockSize-2; j++){
@@ -577,8 +582,8 @@ int main(int argc, char* argv[]) {
         if(myid==0 && output){
             cout << "Iterations: " << iter << endl;
         }
-        cout << myid <<endl;
-        if (output) {
+        //cout << myid <<endl;
+        if (output && myid == 0) {
             print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
         }
 
