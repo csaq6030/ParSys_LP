@@ -88,16 +88,16 @@ inline double stencil2D(double *arrayB, double *arrayA, const int m, const int s
 int main(int argc, char* argv[]) {
     const bool output = true;
     
-    const int size = 16; //512 or 768
+    const int size = 12; //512 or 768
     
     const double up = 1.;
-    const double down = 0.;
-    const double left = -0.5;
-    const double right = 0.5;
+    const double down = 1;//0.;
+    const double left = 1;//-0.5;
+    const double right = 1;//0.5;
     double reducedProgress = 0.;
     int iter = 0;
     
-    const double epsilon = 100.; // 10 or 100 for 512 or 768 according
+    const double epsilon = 0.; // 10 or 100 for 512 or 768 according
     
     //init mpi
     int myid, worldSize;
@@ -126,12 +126,12 @@ int main(int argc, char* argv[]) {
 
             iter += 2;
 
-            if (iter == 14)
+            if (iter == 4)
                 break;
         }
         
         if (output) {
-            print2Darray(arrayA, 1, 1,size + 1, size + 1, 0);
+            print2Darray(arrayA, 0, 0,size + 2, size + 2, 0);
 
             cout << "iter: " << iter << endl;
         }
@@ -456,17 +456,25 @@ int main(int argc, char* argv[]) {
             // calculate border values
             // first iteration, calculate only when neighbor exist -> ignore when borderline
             for(int i = 1; i < 5; i++){
-                for(int j = 1; j < blockSize-1; j++){
+                int j = 1, limitj = blockSize-1;
+                if(leftid==MPI_PROC_NULL){
+                    j = 2; 
+                }
+                if(rightid==MPI_PROC_NULL){
+                    limitj = blockSize - 2;
+                }
+                
+                for(; j < limitj; j++){
                     // top border cells
                     if(i > 1 || (upid != MPI_PROC_NULL && i == 1)){
                         arrayB[i*blockSize + j] = (arrayA[i*blockSize + j] + arrayA[(i-1)*blockSize + j] + arrayA[(i+1)*blockSize + j]
-                                                   + arrayA[i*blockSize + j - 1] + arrayA[i*blockSize + j + 1])*0.2;
+                                                   + arrayA[i*blockSize + j - 1] + arrayA[i*blockSize + j + 1])/5;
                     }
                     // bottom border cells
                     if(i > 1 || (downid != MPI_PROC_NULL && i == 1)){
                         arrayB[blockSize*blockSize - (i+1)*blockSize + j] = (arrayA[blockSize*blockSize - (i+1)*blockSize + j]
                                                                              + arrayA[blockSize*blockSize - (i+2)*blockSize + j] + arrayA[blockSize*blockSize - (i+1)*blockSize + j + 1]
-                                                                             + arrayA[blockSize*blockSize - (i)*blockSize + j] + arrayA[blockSize*blockSize - (i+1)*blockSize + j - 1])*0.2;
+                                                                             + arrayA[blockSize*blockSize - (i)*blockSize + j] + arrayA[blockSize*blockSize - (i+1)*blockSize + j - 1])/5;
                     }
                 }
             }
@@ -475,30 +483,30 @@ int main(int argc, char* argv[]) {
                     // left border cells
                     if(i > 1 || (leftid != MPI_PROC_NULL && i == 1)){
                         arrayB[j*blockSize + i] = (arrayA[j*blockSize + i] + arrayA[(j-1)*blockSize + i] + arrayA[(j-1)*blockSize + i]
-                                                   + arrayA[j*blockSize + i - 1] + arrayA[j*blockSize + i + 1])*0.2;
+                                                   + arrayA[j*blockSize + i - 1] + arrayA[j*blockSize + i + 1])/5;
                     }
                     // right border cells
                     if(i > 1 || (rightid != MPI_PROC_NULL && i == 1)){
                         arrayB[(j+1)*blockSize - 1 - i] = (arrayA[(j+1)*blockSize - 1 - i] + arrayA[(j)*blockSize - 1 - i] + arrayA[(j+2)*blockSize - 1 - i]
-                                                           + arrayA[(j+1)*blockSize - 2 - i] + arrayA[(j+1)*blockSize - i])*0.2;
+                                                           + arrayA[(j+1)*blockSize - 2 - i] + arrayA[(j+1)*blockSize - i])/5;
                     }
                 }
             }
 
-            if (output && myid == 0) {
-                print2Darray(arrayB, 0, 0, blockSize, blockSize, myid);
-            }
+//            if (output) {
+//                print2Darray(arrayB, 0, 0, blockSize, blockSize, myid);
+//            }
 
             // 2nd iteration
             for(int i = 2; i < 4; i++){
                 for(int j = 2; j < blockSize-2; j++){
                     // top border cells
                     arrayA[i*blockSize + j] = (arrayB[i*blockSize + j] + arrayB[(i-1)*blockSize + j] + arrayB[(i+1)*blockSize + j]
-                                               + arrayB[i*blockSize + j - 1] + arrayB[i*blockSize + j + 1])*0.2;
+                                               + arrayB[i*blockSize + j - 1] + arrayB[i*blockSize + j + 1])/5;
                     // bottom border cells
                     arrayA[blockSize*blockSize - (i+1)*blockSize + j] = (arrayB[blockSize*blockSize - (i+1)*blockSize + j]
                                                                          + arrayB[blockSize*blockSize - (i+2)*blockSize + j] + arrayB[blockSize*blockSize - (i+1)*blockSize + j + 1]
-                                                                         + arrayB[blockSize*blockSize - (i)*blockSize + j] + arrayB[blockSize*blockSize - (i+1)*blockSize + j - 1])*0.2;
+                                                                         + arrayB[blockSize*blockSize - (i)*blockSize + j] + arrayB[blockSize*blockSize - (i+1)*blockSize + j - 1])/5;
                     progress += std::abs(arrayB[i*blockSize + j] - arrayA[i*blockSize + j]);
                     progress += std::abs(arrayB[blockSize*blockSize - (i+1)*blockSize + j] - arrayA[blockSize*blockSize - (i+1)*blockSize + j]);
                 }
@@ -507,10 +515,10 @@ int main(int argc, char* argv[]) {
                 for(int i = 2; i < 4; i++){
                     // left border cells
                     arrayA[j*blockSize + i] = (arrayB[j*blockSize + i] + arrayB[(j-1)*blockSize + i] + arrayB[(j-1)*blockSize + i]
-                                               + arrayB[j*blockSize + i - 1] + arrayB[j*blockSize + i + 1])*0.2;
+                                               + arrayB[j*blockSize + i - 1] + arrayB[j*blockSize + i + 1])/5;
                     // right border cells
                     arrayA[(j+1)*blockSize - 1 - i] = (arrayB[(j+1)*blockSize - 1 - i] + arrayB[(j)*blockSize - 1 - i] + arrayB[(j+2)*blockSize - 1 - i]
-                                                       + arrayB[(j+1)*blockSize - 2 - i] + arrayB[(j+1)*blockSize - i])*0.2;
+                                                       + arrayB[(j+1)*blockSize - 2 - i] + arrayB[(j+1)*blockSize - i])/5;
                     progress += std::abs(arrayB[j*blockSize + i] - arrayA[j*blockSize + i]);
                     progress += std::abs(arrayB[(j+1)*blockSize - 1 - i] - arrayA[(j+1)*blockSize - 1 - i]);
                 }
@@ -539,13 +547,13 @@ int main(int argc, char* argv[]) {
             for(int i = 5; i < blockSize-5; i++){
                 for(int j = 5; j < blockSize-5; j++){
                     arrayB[i*blockSize + j] = (arrayA[i*blockSize + j] + arrayA[(i-1)*blockSize + j] + arrayA[(i+1)*blockSize + j]
-                                               + arrayA[i*blockSize + j - 1] + arrayA[i*blockSize + j + 1])*0.2;
+                                               + arrayA[i*blockSize + j - 1] + arrayA[i*blockSize + j + 1])/5;
                 }
             }
             for(int i = 4; i < blockSize-4; i++){
                 for(int j = 4; j < blockSize-4; j++){
                     arrayA[i*blockSize + j] = (arrayB[i*blockSize + j] + arrayB[(i-1)*blockSize + j] + arrayB[(i+1)*blockSize + j]
-                                               + arrayB[i*blockSize + j - 1] + arrayB[i*blockSize + j + 1])*0.2;
+                                               + arrayB[i*blockSize + j - 1] + arrayB[i*blockSize + j + 1])/5;
                     progress += std::abs(arrayA[i*blockSize + j] - arrayB[i*blockSize + j]);
                 }
             }
@@ -570,23 +578,36 @@ int main(int argc, char* argv[]) {
             if(downid!=MPI_PROC_NULL)
                 memcpy(&arrayA[blockSize*blockSize-2*blockSize], downRecvBuff, 2*blockSize*sizeof(double));
 
-            if(myid==0)
+            //if(myid==0)
                 iter +=2;
 
             // synchronize 
             MPI_Waitall(4, req, MPI_STATUSES_IGNORE);
-        }while(reducedProgress >= epsilon);
+        }while(iter<4);
 
 
+
+        
+        //cout << myid <<endl;
+        
+        if (output) {
+            int i = 0;
+            if(myid==0){
+                print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
+                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
+            }else if(myid != worldSize-1){
+                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
+                print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
+                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
+            }else{
+                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
+                print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
+            }
+        }
 
         if(myid==0 && output){
             cout << "Iterations: " << iter << endl;
         }
-        //cout << myid <<endl;
-        if (output && myid == 0) {
-            print2Darray(arrayA, 0, 0, blockSize, blockSize, myid);
-        }
-
 
 
         delete[] arrayA;
