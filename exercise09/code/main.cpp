@@ -550,44 +550,320 @@ int main(int argc, char* argv[]) {
         delete[] rightRecvBuff;
 
 
-    } else { //not square ones (8 (2*4), 32 (2*16))
-        const int columnSize = worldSize / 2;
+    }else if(worldSize==8 || worldSize==32){
+        // neighbor indexing for x*x=worldSize and initialize array
         int leftid, rightid, upid, downid;
+        int i_range = 2;
+        int j_range = 4;
+        if(worldSize==32){
+            i_range = 4;
+            j_range = 8;
+        }
+        const int ghostcells = 2;
+        const int iblockSize = (size/i_range) + (ghostcells * 2);
+        const int jblockSize = (size/j_range) + (ghostcells * 2);
+        double *arrayA = NULL, *arrayB = NULL;
+        
+        if(myid == 0){  //top-left case
+            leftid = MPI_PROC_NULL;
+            upid = MPI_PROC_NULL;
+            downid = myid + i_range;
+            rightid = myid + 1;
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < iblockSize; i++){
+                arrayA[(iblockSize) + i] = up;
+                arrayB[(iblockSize) + i] = up;
+                if(i<jblockSize){   
+                    arrayA[i*(iblockSize) + 1] = left;
+                    arrayB[i*(iblockSize) + 1] = left;
+                }
+            }
+        }else if(myid < i_range-1){ //top-middle cases
+            upid = MPI_PROC_NULL;
+            downid = myid + i_range;
+            leftid = myid - 1;
+            rightid = myid + 1;
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < iblockSize; i++){
+                arrayA[(iblockSize) + i] = up;
+                arrayB[(iblockSize) + i] = up;
+            }
+        }else if(myid == i_range-1){ // top-right case
+            upid = MPI_PROC_NULL;
+            rightid = MPI_PROC_NULL;
+            downid = myid + i_range;
+            leftid = myid - 1;
 
-        if (myid == 0) { //  upper left corner
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < iblockSize; i++){
+                arrayA[(iblockSize) + i] = up;
+                arrayB[(iblockSize) + i] = up;
+                if(i<jblockSize){ 
+                    arrayA[i*(iblockSize)-2] = right;
+                    arrayB[i*(iblockSize)-2] = right;
+                }
+            }
+        }else if(myid == worldSize - i_range){ // left-bottom case
+            downid = MPI_PROC_NULL;
             leftid = MPI_PROC_NULL;
-            rightid = 1;
-            upid = MPI_PROC_NULL;
-            downid = columnSize;
-        } else if ( myid < columnSize - 1){ // upper row minus right corner
-            leftid = myid - 1;
+            upid = myid - i_range;
             rightid = myid + 1;
-            upid = MPI_PROC_NULL;
-            downid = myid + columnSize;
-        } else if (myid == columnSize - 1 ) { // upper right corner
-            leftid = myid - 1;
+
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < iblockSize; i++){
+                arrayA[iblockSize*jblockSize - i -1 -iblockSize] = down;
+                arrayB[iblockSize*jblockSize - i -1 -iblockSize] = down;
+                if(i<jblockSize){ 
+                    arrayA[i*(iblockSize) + 1] = left;
+                    arrayB[i*(iblockSize) + 1] = left;
+                }
+            }
+        }else if(myid == worldSize-1){    // right-bottom case
             rightid = MPI_PROC_NULL;
-            upid = MPI_PROC_NULL;
-            downid = myid + columnSize;
-        } else if (myid == columnSize) { // lower left corner
+            downid = MPI_PROC_NULL;
+            upid = myid - i_range;
+            leftid = myid - 1;
+
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < iblockSize; i++){
+                arrayA[iblockSize*jblockSize - i -1 -iblockSize] = down;
+                arrayB[iblockSize*jblockSize - i -1 -iblockSize] = down;
+                if(i<jblockSize){ 
+                    arrayB[i*(iblockSize)-2] = right;
+                    arrayA[i*(iblockSize)-2] = right;
+                }
+            }
+        }else if(myid % i_range == 0){ // left-middle cases
             leftid = MPI_PROC_NULL;
+            upid = myid - i_range;
+            downid = myid + i_range;
             rightid = myid + 1;
-            upid = 0;
-            downid = MPI_PROC_NULL;
-        } else if (myid < worldSize - 1) { // lower row minus right corner
-            leftid = myid - 1;
-            rightid = myid + 1;
-            upid = myid - columnSize;
-            downid = MPI_PROC_NULL;
-        } else { // right corner
-            leftid = myid - 1;
+
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < jblockSize; i++){
+                arrayA[i*(iblockSize) + 1] = left;
+                arrayB[i*(iblockSize) + 1] = left;
+            }
+        }else if(myid % i_range == i_range-1){  // right-middle cases
             rightid = MPI_PROC_NULL;
-            upid = myid - columnSize;
+            upid = myid - i_range;
+            downid = myid + i_range;
+            leftid = myid - 1;
+
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < jblockSize; i++){
+                arrayA[i*(iblockSize)-2] = right;
+                arrayB[i*(iblockSize)-2] = right;
+            }
+        }else if(myid > i_range*j_range - i_range){   // bottom-middle cases
             downid = MPI_PROC_NULL;
+            upid = myid - i_range;
+            leftid = myid - 1;
+            rightid = myid + 1;
+
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
+            for(int i = 0; i < iblockSize; i++){
+                arrayA[iblockSize*jblockSize - i -1 -iblockSize] = down;
+                arrayB[iblockSize*jblockSize - i -1 -iblockSize] = down;
+            }
+        }else{  //interiors
+            upid = myid - i_range;
+            downid = myid + i_range;
+            leftid = myid - 1;
+            rightid = myid + 1;
+
+            arrayA = new double[iblockSize * jblockSize]();
+            arrayB = new double[iblockSize * jblockSize]();
         }
 
+        double *upBorder = new double[2*iblockSize]();
+        double *downBorder = new double[2*iblockSize]();
+        double *upRecvBuff = new double[2*iblockSize]();
+        double *downRecvBuff = new double[2*iblockSize]();
+        double *leftBorder = new double[2*(jblockSize-4)]();
+        double *rightBorder = new double[2*(jblockSize-4)]();
+        double *leftRecvBuff = new double[2*(jblockSize-4)]();
+        double *rightRecvBuff = new double[2*(jblockSize-4)]();
+
+        if (false) {
+            int i = 0;
+            if(myid==0){
+                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
+                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
+            }else if(myid != worldSize-1){
+                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
+                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
+                MPI_Send(&i,1,MPI_INTEGER,myid+1,0,MPI_COMM_WORLD);
+            }else{
+                MPI_Recv(&i,1,MPI_INTEGER,myid-1,0,MPI_COMM_WORLD,MPI_STATUSES_IGNORE);
+                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
+            }
+        }
+        
+        double progress;
+        do{
+            progress = 0;
+            // calculate border values
+            // first iteration, calculate only when neighbor exist -> ignore when borderline
+            for(int i = 1; i < 5; i++){
+                int j = 1, limitj = iblockSize-1;
+                if(leftid==MPI_PROC_NULL){
+                    j = 2; 
+                }
+                if(rightid==MPI_PROC_NULL){
+                    limitj = iblockSize - 2;
+                }
+                
+                for(; j < limitj; j++){
+                    // top border cells
+                    if(i > 1 || (upid != MPI_PROC_NULL && i == 1)){
+                        arrayB[i*iblockSize + j] = (arrayA[i*iblockSize + j] + arrayA[(i-1)*iblockSize + j] + arrayA[(i+1)*iblockSize + j]
+                                                   + arrayA[i*iblockSize + j - 1] + arrayA[i*iblockSize + j + 1])/5;
+                    }
+                    // bottom border cells
+                    if(i > 1 || (downid != MPI_PROC_NULL && i == 1)){
+                        arrayB[jblockSize*iblockSize - (i+1)*iblockSize + j] = (arrayA[jblockSize*iblockSize - (i+1)*iblockSize + j]
+                                                                             + arrayA[jblockSize*iblockSize - (i+2)*iblockSize + j] + arrayA[jblockSize*iblockSize - (i+1)*iblockSize + j + 1]
+                                                                             + arrayA[jblockSize*iblockSize - (i)*iblockSize + j] + arrayA[jblockSize*iblockSize - (i+1)*iblockSize + j - 1])/5;
+                    }
+                }
+            }
+            for(int j = 5; j < jblockSize-5; j++){
+                for(int i = 1; i < 5; i++){
+                    // left border cells
+                    if(i > 1 || (leftid != MPI_PROC_NULL && i == 1)){
+                        arrayB[j*iblockSize + i] = (arrayA[j*iblockSize + i] + arrayA[(j-1)*iblockSize + i] + arrayA[(j+1)*iblockSize + i]
+                                                   + arrayA[j*iblockSize + i - 1] + arrayA[j*iblockSize + i + 1])/5;
+                    }
+                    // right border cells
+                    if(i > 1 || (rightid != MPI_PROC_NULL && i == 1)){
+                        arrayB[(j+1)*iblockSize - 1 - i] = (arrayA[(j+1)*iblockSize - 1 - i] + arrayA[(j)*iblockSize - 1 - i] + arrayA[(j+2)*iblockSize - 1 - i]
+                                                           + arrayA[(j+1)*iblockSize - 2 - i] + arrayA[(j+1)*iblockSize - i])/5;
+                    }
+                }
+            }
+
+//            if (output) {
+//                print2Darray(arrayB, 0, 0, blockSize, blockSize, myid);
+//            }
+
+            // 2nd iteration
+            for(int i = 2; i < 4; i++){
+                for(int j = 2; j < iblockSize-2; j++){
+                    // top border cells
+                    arrayA[i*iblockSize + j] = (arrayB[i*iblockSize + j] + arrayB[(i-1)*iblockSize + j] + arrayB[(i+1)*iblockSize + j]
+                                               + arrayB[i*iblockSize + j - 1] + arrayB[i*iblockSize + j + 1])/5;
+                    // bottom border cells
+                    arrayA[jblockSize*iblockSize - (i+1)*iblockSize + j] = (arrayB[jblockSize*iblockSize - (i+1)*iblockSize + j]
+                                                                         + arrayB[jblockSize*iblockSize - (i+2)*iblockSize + j] + arrayB[jblockSize*iblockSize - (i+1)*iblockSize + j + 1]
+                                                                         + arrayB[jblockSize*iblockSize - (i)*iblockSize + j] + arrayB[jblockSize*iblockSize - (i+1)*iblockSize + j - 1])/5;
+                    progress += std::abs(arrayB[i*iblockSize + j] - arrayA[i*iblockSize + j]);
+                    progress += std::abs(arrayB[jblockSize*iblockSize - (i+1)*iblockSize + j] - arrayA[jblockSize*iblockSize - (i+1)*iblockSize + j]);
+                }
+            }
+            for(int j = 4; j < jblockSize-4; j++){
+                for(int i = 2; i < 4; i++){
+                    // left border cells
+                    arrayA[j*iblockSize + i] = (arrayB[j*iblockSize + i] + arrayB[(j-1)*iblockSize + i] + arrayB[(j+1)*iblockSize + i]
+                                               + arrayB[j*iblockSize + i - 1] + arrayB[j*iblockSize + i + 1])/5;
+                    // right border cells
+                    arrayA[(j+1)*iblockSize - 1 - i] = (arrayB[(j+1)*iblockSize - 1 - i] + arrayB[(j)*iblockSize - 1 - i] + arrayB[(j+2)*iblockSize - 1 - i]
+                                                       + arrayB[(j+1)*iblockSize - 2 - i] + arrayB[(j+1)*iblockSize - i])/5;
+                    progress += std::abs(arrayB[j*iblockSize + i] - arrayA[j*iblockSize + i]);
+                    progress += std::abs(arrayB[(j+1)*iblockSize - 1 - i] - arrayA[(j+1)*iblockSize - 1 - i]);
+                }
+            }
+            // create send buffers
+            memcpy(upBorder, &arrayA[2*iblockSize], 2*iblockSize*sizeof(double));
+            memcpy(downBorder, &arrayA[iblockSize*jblockSize - 4*iblockSize], 2*iblockSize*sizeof(double));
+
+            for(int i = 0; i < jblockSize-4; i++){
+                memcpy(&leftBorder[i*2], &arrayA[(i+2)*iblockSize+2], 2*sizeof(double));
+                memcpy(&rightBorder[i*2], &arrayA[(i+3)*iblockSize-4], 2*sizeof(double));
+            }
+            // send out/receive ghost-cells
+            MPI_Request req[8];
+            MPI_Isend(upBorder,2*iblockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[0]); // up border
+            MPI_Isend(downBorder,2*iblockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[1]);  //down border
+            MPI_Isend(rightBorder,2*(jblockSize-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[2]);  //right border
+            MPI_Isend(leftBorder,2*(jblockSize-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[3]);  //left border
+
+            MPI_Irecv(leftRecvBuff,2*(jblockSize-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[6]);
+            MPI_Irecv(rightRecvBuff,2*(jblockSize-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[7]);
+            MPI_Irecv(upRecvBuff,2*iblockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[4]);
+            MPI_Irecv(downRecvBuff,2*iblockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[5]);
+
+            // calculate interiors
+            for(int i = 5; i < jblockSize-5; i++){
+                for(int j = 5; j < iblockSize-5; j++){
+                    arrayB[i*iblockSize + j] = (arrayA[i*iblockSize + j] + arrayA[(i-1)*iblockSize + j] + arrayA[(i+1)*iblockSize + j]
+                                               + arrayA[i*iblockSize + j - 1] + arrayA[i*iblockSize + j + 1])/5;
+                }
+            }
+            for(int i = 4; i < jblockSize-4; i++){
+                for(int j = 4; j < iblockSize-4; j++){
+                    arrayA[i*iblockSize + j] = (arrayB[i*iblockSize + j] + arrayB[(i-1)*iblockSize + j] + arrayB[(i+1)*iblockSize + j]
+                                               + arrayB[i*iblockSize + j - 1] + arrayB[i*iblockSize + j + 1])/5;
+                    progress += std::abs(arrayA[i*iblockSize + j] - arrayB[i*iblockSize + j]);
+                }
+            }
+
+            MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+            // load left and right borders -> TODO use MPI_Test()
+            MPI_Wait(&req[6], MPI_STATUSES_IGNORE);
+            MPI_Wait(&req[7], MPI_STATUSES_IGNORE);
+            // TODO can be avoided with MPI type
+            for(int i = 0; i < jblockSize-4; i++){
+                if(leftid!=MPI_PROC_NULL)
+                    memcpy(&arrayA[(i+2)*iblockSize], &leftRecvBuff[i*2], 2*sizeof(double));
+                if(rightid!=MPI_PROC_NULL)
+                    memcpy(&arrayA[(i+3)*iblockSize-2], &rightRecvBuff[i*2], 2*sizeof(double));
+            }
+
+            MPI_Wait(&req[4], MPI_STATUSES_IGNORE);
+            if(upid!=MPI_PROC_NULL)
+                memcpy(&arrayA[0], upRecvBuff, 2*iblockSize*sizeof(double));
+            MPI_Wait(&req[5], MPI_STATUSES_IGNORE);
+            if(downid!=MPI_PROC_NULL)
+                memcpy(&arrayA[iblockSize*jblockSize-2*iblockSize], downRecvBuff, 2*iblockSize*sizeof(double));
+
+            //if(myid==0)
+                iter +=2;
+
+            // synchronize 
+            MPI_Waitall(4, req, MPI_STATUSES_IGNORE);
+        }while(reducedProgress >= epsilon);
 
 
+
+        
+        //cout << myid <<endl;
+
+        if(myid==0 && output){
+            cout << "Iterations: " << iter << endl;
+        }
+
+        
+
+        delete[] arrayA;
+        delete[] arrayB;
+        delete[] upBorder;
+        delete[] downBorder;
+        delete[] leftBorder;
+        delete[] rightBorder;
+        delete[] upRecvBuff;
+        delete[] downRecvBuff;
+        delete[] leftRecvBuff;
+        delete[] rightRecvBuff;
     }
     
     
