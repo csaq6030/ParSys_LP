@@ -167,10 +167,10 @@ int main(int argc, char* argv[]) {
     double *downBorder = new double[2*blockSize]();
     double *upRecvBuff = new double[2*blockSize]();
     double *downRecvBuff = new double[2*blockSize]();
-    double *leftBorder = new double[2*(blockSize-4-4)]();
-    double *rightBorder = new double[2*(blockSize-4-4)]();
-    double *leftRecvBuff = new double[2*(blockSize-4-4)]();
-    double *rightRecvBuff = new double[2*(blockSize-4-4)]();
+    double *leftBorder = new double[2*(blockSize-4)]();
+    double *rightBorder = new double[2*(blockSize-4)]();
+    double *leftRecvBuff = new double[2*(blockSize-4)]();
+    double *rightRecvBuff = new double[2*(blockSize-4)]();
     
     do{
         progress = 0;
@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-        for(int j = 5; j < blockSize-4; j++){
+        for(int j = 5; j < blockSize-5; j++){
             for(int i = 1; i < 5; i++){
                 // left border cells
                 if(i > 1 || (leftid != MPI_PROC_NULL && i == 1)){
@@ -235,19 +235,19 @@ int main(int argc, char* argv[]) {
         memcpy(upBorder, &arrayA[2*blockSize], 2*blockSize*sizeof(double));
         memcpy(downBorder, &arrayA[blockSize*blockSize - 4*blockSize], 2*blockSize*sizeof(double));
         
-        for(int i = 0; i < blockSize-4-4; i++){
-            memcpy(&leftBorder[i*2], &arrayA[(i+4)*blockSize+2], 2*sizeof(double));
-            memcpy(&rightBorder[i*2], &arrayA[(i+5)*blockSize-4], 2*sizeof(double));
+        for(int i = 0; i < blockSize-4; i++){
+            memcpy(&leftBorder[i*2], &arrayA[(i+2)*blockSize+2], 2*sizeof(double));
+            memcpy(&rightBorder[i*2], &arrayA[(i+3)*blockSize-4], 2*sizeof(double));
         }
         // send out/receive ghost-cells
         MPI_Request req[8];
         MPI_Isend(upBorder,2*blockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[0]); // north border
         MPI_Isend(downBorder,2*blockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[1]);  //south border
-        MPI_Isend(rightBorder,2*(blockSize-4-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[2]);  //east border
-        MPI_Isend(leftBorder,2*(blockSize-4-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[3]);  //west border
+        MPI_Isend(rightBorder,2*(blockSize-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[2]);  //east border
+        MPI_Isend(leftBorder,2*(blockSize-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[3]);  //west border
 
-        MPI_Irecv(leftRecvBuff,2*(blockSize-4-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[6]);
-        MPI_Irecv(rightRecvBuff,2*(blockSize-4-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[7]);
+        MPI_Irecv(leftRecvBuff,2*(blockSize-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[6]);
+        MPI_Irecv(rightRecvBuff,2*(blockSize-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[7]);
         MPI_Irecv(upRecvBuff,2*blockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[4]);
         MPI_Irecv(downRecvBuff,2*blockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[5]);
 
@@ -272,29 +272,13 @@ int main(int argc, char* argv[]) {
         MPI_Wait(&req[6], MPI_STATUSES_IGNORE);
         MPI_Wait(&req[7], MPI_STATUSES_IGNORE);
         // TODO can be avoided with MPI type
-        for(int i = 0; i < blockSize-4-4; i++){
+        for(int i = 0; i < blockSize-4; i++){
             if(leftid!=MPI_PROC_NULL)
-                memcpy(&arrayA[(i+4)*blockSize], &leftRecvBuff[i*2], 2*sizeof(double));
+                memcpy(&arrayA[(i+2)*blockSize], &leftRecvBuff[i*2], 2*sizeof(double));
             if(rightid!=MPI_PROC_NULL)
-                memcpy(&arrayA[(i+5)*blockSize-2], &rightRecvBuff[i*2], 2*sizeof(double));
+                memcpy(&arrayA[(i+3)*blockSize-2], &rightRecvBuff[i*2], 2*sizeof(double));
         }
-        
-//        for(int i = 0; i <= blockSize-4-4; i++){
-//            if(leftid!=MPI_PROC_NULL){
-//                arrayA[(i+4)*blockSize]=leftRecvBuff[i*2];
-//                arrayA[(i+4)*blockSize+1]=leftRecvBuff[i*2+1];
-//            }
-//            if(rightid!=MPI_PROC_NULL){
-//                arrayA[(i+5)*blockSize-2]=rightRecvBuff[i*2];
-//                arrayA[(i+5)*blockSize-2+1]=rightRecvBuff[i*2+1];
-//            }
-//        }
-        
-//        for (int i = 0; i < blockSize - 8; i++) {
-//            for (int j = 0; i < 2; j++) {
-//                arrayA[(i+4)*blockSize] = rightRecvBuff[i * 2 + j];
-//            }
-//        }
+
         MPI_Wait(&req[4], MPI_STATUSES_IGNORE);
         if(upid!=MPI_PROC_NULL)
             memcpy(&arrayA[0], upRecvBuff, 2*blockSize*sizeof(double));
@@ -302,17 +286,11 @@ int main(int argc, char* argv[]) {
         if(downid!=MPI_PROC_NULL)
             memcpy(&arrayA[blockSize*blockSize-2*blockSize], downRecvBuff, 2*blockSize*sizeof(double));
         
-        if(myid == 0){
-            printArray2D(rightRecvBuff,2*(blockSize-8), 0);
-        }
         if(myid==0)
-            printArray2D(arrayA, blockSize, myid);
+            iter +=2;
 
         // synchronize 
         MPI_Waitall(4, req, MPI_STATUSES_IGNORE);
-        
-        if(myid==0)
-            iter +=2;
     }while(reducedProgress >= epsilon);
     
     MPI_Finalize();
@@ -321,6 +299,7 @@ int main(int argc, char* argv[]) {
         cout << "Iterations: " << iter << endl;
     }
     cout << myid <<endl;
+    printArray2D(arrayA, blockSize, myid);
     
     
     delete[] arrayA;
