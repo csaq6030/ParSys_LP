@@ -88,7 +88,7 @@ inline double stencil2D(double *arrayB, double *arrayA, const int m, const int s
 int main(int argc, char* argv[]) {
     const bool output = true;
     
-    const int size = 12; //512 or 768
+    const int size = 512; //512 or 768
     
     const double up = 1.;
     const double down = 1;//0.;
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
     double reducedProgress = 0.;
     int iter = 0;
     
-    const double epsilon = 0.; // 10 or 100 for 512 or 768 according
+    const double epsilon = 10.; // 10 or 100 for 512 or 768 according
     
     cout.precision(4);
     cout << fixed;
@@ -129,8 +129,8 @@ int main(int argc, char* argv[]) {
 
             iter += 2;
 
-            if (iter == 20)
-                break;
+            //if (iter == 20)
+                //break;
         }
         
         if (output) {
@@ -586,7 +586,7 @@ int main(int argc, char* argv[]) {
 
             // synchronize 
             MPI_Waitall(4, req, MPI_STATUSES_IGNORE);
-        }while(iter<20);
+        }while(reducedProgress >= epsilon);
 
 
 
