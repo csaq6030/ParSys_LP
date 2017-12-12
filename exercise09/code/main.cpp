@@ -90,6 +90,10 @@ int main(int argc, char* argv[]) {
         const int iblockSize = (size/i_range) + (ghostcells * 2);
         const int jblockSize = (size/j_range) + (ghostcells * 2);
         double *arrayA = NULL, *arrayB = NULL;
+        // MPI datatype to avoid buffers
+        MPI_Datatype sideBorderType;
+        MPI_Type_vector(jblockSize-4, 2, iblockSize, MPI_DOUBLE, &sideBorderType);
+        MPI_Type_commit(&sideBorderType);
         
         //neighbor indexing and initialize array
         if(myid == 0 && worldSize==2){   //special case with 3 borders
@@ -244,15 +248,6 @@ int main(int argc, char* argv[]) {
             arrayA = new double[iblockSize * jblockSize]();
             arrayB = new double[iblockSize * jblockSize]();
         }
-
-        double *upBorder = new double[2*iblockSize]();
-        double *downBorder = new double[2*iblockSize]();
-        double *upRecvBuff = new double[2*iblockSize]();
-        double *downRecvBuff = new double[2*iblockSize]();
-        double *leftBorder = new double[2*(jblockSize-4)]();
-        double *rightBorder = new double[2*(jblockSize-4)]();
-        double *leftRecvBuff = new double[2*(jblockSize-4)]();
-        double *rightRecvBuff = new double[2*(jblockSize-4)]();
         
         const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
         double progress;
@@ -323,25 +318,29 @@ int main(int argc, char* argv[]) {
                     progress += std::abs(arrayB[(j+1)*iblockSize - 1 - i] - arrayA[(j+1)*iblockSize - 1 - i]);
                 }
             }
-            // create send buffers
-            memcpy(upBorder, &arrayA[2*iblockSize], 2*iblockSize*sizeof(double));
-            memcpy(downBorder, &arrayA[iblockSize*jblockSize - 4*iblockSize], 2*iblockSize*sizeof(double));
+            // treat arrayB as send buffers
+            if(upid != MPI_PROC_NULL)
+                memcpy(&arrayB[0], &arrayA[2*iblockSize], 2*iblockSize*sizeof(double));
+            if(downid != MPI_PROC_NULL)
+                memcpy(&arrayB[iblockSize*jblockSize - 2*iblockSize], &arrayA[iblockSize*jblockSize - 4*iblockSize], 2*iblockSize*sizeof(double));
 
             for(int i = 0; i < jblockSize-4; i++){
-                memcpy(&leftBorder[i*2], &arrayA[(i+2)*iblockSize+2], 2*sizeof(double));
-                memcpy(&rightBorder[i*2], &arrayA[(i+3)*iblockSize-4], 2*sizeof(double));
+                if(leftid != MPI_PROC_NULL)
+                    memcpy(&arrayB[(i+2)*iblockSize], &arrayA[(i+2)*iblockSize+2], 2*sizeof(double));
+                if(rightid != MPI_PROC_NULL)
+                    memcpy(&arrayB[(i+3)*iblockSize-2], &arrayA[(i+3)*iblockSize-4], 2*sizeof(double));
             }
             // send out/receive ghost-cells
             MPI_Request req[8];
-            MPI_Isend(upBorder,2*iblockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[0]); // up border
-            MPI_Isend(downBorder,2*iblockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[1]);  //down border
-            MPI_Isend(rightBorder,2*(jblockSize-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[2]);  //right border
-            MPI_Isend(leftBorder,2*(jblockSize-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[3]);  //left border
+            MPI_Isend(&arrayB[0],2*iblockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[0]); // up border
+            MPI_Isend(&arrayB[iblockSize*jblockSize - 2*iblockSize],2*iblockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[1]);  //down border
+            MPI_Isend(&arrayB[(3)*iblockSize-2],1,sideBorderType,rightid,0,MPI_COMM_WORLD,&req[2]);  //right border
+            MPI_Isend(&arrayB[(2)*iblockSize],1,sideBorderType,leftid,0,MPI_COMM_WORLD,&req[3]);  //left border
 
-            MPI_Irecv(leftRecvBuff,2*(jblockSize-4),MPI_DOUBLE,leftid,0,MPI_COMM_WORLD,&req[6]);
-            MPI_Irecv(rightRecvBuff,2*(jblockSize-4),MPI_DOUBLE,rightid,0,MPI_COMM_WORLD,&req[7]);
-            MPI_Irecv(upRecvBuff,2*iblockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[4]);
-            MPI_Irecv(downRecvBuff,2*iblockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[5]);
+            MPI_Irecv(&arrayA[(2)*iblockSize],1,sideBorderType,leftid,0,MPI_COMM_WORLD,&req[6]);
+            MPI_Irecv(&arrayA[(3)*iblockSize-2],1,sideBorderType,rightid,0,MPI_COMM_WORLD,&req[7]);
+            MPI_Irecv(&arrayA[0],2*iblockSize,MPI_DOUBLE,upid,0,MPI_COMM_WORLD,&req[4]);
+            MPI_Irecv(&arrayA[iblockSize*jblockSize-2*iblockSize],2*iblockSize,MPI_DOUBLE,downid,0,MPI_COMM_WORLD,&req[5]);
 
             // calculate interiors
             for(int i = 5; i < jblockSize-5; i++){
@@ -360,29 +359,11 @@ int main(int argc, char* argv[]) {
 
             MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-            // load left and right borders -> TODO use MPI_Test()
-            MPI_Wait(&req[6], MPI_STATUSES_IGNORE);
-            MPI_Wait(&req[7], MPI_STATUSES_IGNORE);
-            // TODO can be avoided with MPI type
-            for(int i = 0; i < jblockSize-4; i++){
-                if(leftid!=MPI_PROC_NULL)
-                    memcpy(&arrayA[(i+2)*iblockSize], &leftRecvBuff[i*2], 2*sizeof(double));
-                if(rightid!=MPI_PROC_NULL)
-                    memcpy(&arrayA[(i+3)*iblockSize-2], &rightRecvBuff[i*2], 2*sizeof(double));
-            }
-
-            MPI_Wait(&req[4], MPI_STATUSES_IGNORE);
-            if(upid!=MPI_PROC_NULL)
-                memcpy(&arrayA[0], upRecvBuff, 2*iblockSize*sizeof(double));
-            MPI_Wait(&req[5], MPI_STATUSES_IGNORE);
-            if(downid!=MPI_PROC_NULL)
-                memcpy(&arrayA[iblockSize*jblockSize-2*iblockSize], downRecvBuff, 2*iblockSize*sizeof(double));
-
             if(myid==0)
                 iter +=2;
 
             // synchronize 
-            MPI_Waitall(4, req, MPI_STATUSES_IGNORE);
+            MPI_Waitall(8, req, MPI_STATUSES_IGNORE);
         }while(reducedProgress >= epsilon);
         
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
@@ -408,14 +389,6 @@ int main(int argc, char* argv[]) {
                  cout << "Iterations: " << iter << endl << endl;
         delete[] arrayA;
         delete[] arrayB;
-        delete[] upBorder;
-        delete[] downBorder;
-        delete[] leftBorder;
-        delete[] rightBorder;
-        delete[] upRecvBuff;
-        delete[] downRecvBuff;
-        delete[] leftRecvBuff;
-        delete[] rightRecvBuff;
     }
     
     MPI_Finalize();

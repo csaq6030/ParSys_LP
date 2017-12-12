@@ -29,7 +29,7 @@
 # Use the parallel environment "openmpi-fillup", which assigns as many processes
 # as available on each host. Start 16 MPI processes across an arbitrary number of
 # hosts. For each process, SGE will reserve one CPU-core.
-#$ -pe openmpi-fillup 2
+#$ -pe openmpi-fillup 4
 
 ## ALTERNATIVE
 # Use the parallel environment "openmpi-fillup", which assigns as many processes
