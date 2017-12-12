@@ -386,6 +386,8 @@ int main(int argc, char* argv[]) {
         if(output)
             if(myid==0)
                  cout << "Iterations: " << iter << endl << endl;
+
+        MPI_Type_free(&sideBorderType);
         delete[] arrayA;
         delete[] arrayB;
     }
