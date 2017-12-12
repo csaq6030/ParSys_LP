@@ -39,5 +39,5 @@
 ##  #$ -pe openmpi-fillup 8-16
 
 module load gcc/5.1.0
-module load openmpi/2.1.0
+module load openmpi/2.1.1
 ./jsHelper.sh

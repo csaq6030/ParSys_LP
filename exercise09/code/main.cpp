@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <chrono>
 #include <mpi.h>
 #include "helper.h"
 
@@ -43,9 +44,14 @@ int main(int argc, char* argv[]) {
         border1Array(arrayA, arrayB, size + 2, up, down, left, right);
         //print2Darray(arrayA, 0, 0,size + 2, size + 2);
         
+        // start time measurement for the stencil operation
+        const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());		
         do {
             iter += 2;
         } while (stencil1Array(arrayA, arrayB, size + 2) >= epsilon);
+        
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+	cout << elapsed.count() << endl;
         
         if (output) {
             //print2Darray(arrayA, 0, 0,size + 2, size + 2, 0);
@@ -248,6 +254,7 @@ int main(int argc, char* argv[]) {
         double *leftRecvBuff = new double[2*(jblockSize-4)]();
         double *rightRecvBuff = new double[2*(jblockSize-4)]();
         
+        const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
         double progress;
         do{
             progress = 0;
@@ -377,7 +384,10 @@ int main(int argc, char* argv[]) {
             // synchronize 
             MPI_Waitall(4, req, MPI_STATUSES_IGNORE);
         }while(reducedProgress >= epsilon);
-
+        
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+        if(myid==0)
+            cout << elapsed.count() << endl;
 //        if (output) {
 //            int i = 0;
 //            if(myid==0){
