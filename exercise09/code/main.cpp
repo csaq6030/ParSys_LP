@@ -77,15 +77,14 @@ int main(int argc, char* argv[]) {
         if(worldSize==2){
             i_range = 1;
             j_range = 2;
-        }
-        if(worldSize==32){
+        } else if(worldSize==32){
             i_range = 4;
             j_range = 8;
-        }
-        if(worldSize == int (sqrt(worldSize)) * int (sqrt(worldSize))){
+        } else if(worldSize == int (sqrt(worldSize)) * int (sqrt(worldSize))){
             i_range = int (sqrt(worldSize));
             j_range = i_range;
         }
+
         const int ghostcells = 2;
         const int iblockSize = (size/i_range) + (ghostcells * 2);
         const int jblockSize = (size/j_range) + (ghostcells * 2);
