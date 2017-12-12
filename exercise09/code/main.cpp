@@ -100,24 +100,11 @@ int main(int argc, char* argv[]) {
             double *buffer = new double[size * 2]();
 
             while(true){
-                double progress = 0;
-                for (int i= 1; i < n - 1; i++){
-                    for (int j = 1; j < m - 1; j++) {
-                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
-                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
-                    }
-                }
-
-                for (int i= 1; i < n - 1; i++){
-                    for (int j = 1; j < m - 2; j++) {
-                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
-                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
-                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
-                    }
-                }
+                double progress = stencil2D(arrayB, arrayA, m, 1, 1, n - 1, m - 1, 1,
+                                            1, n - 1, m - 2);
                 //cout << "iter first" << endl;
                 MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                cout << "reduce prog: " << reducedProgress << endl;
+                //cout << "reduce prog: " << reducedProgress << endl;
                 if(reducedProgress < epsilon){
                     //send result - none master //collect data
                     //own
@@ -152,13 +139,7 @@ int main(int argc, char* argv[]) {
 
                     //Print result
                     if (output) {
-                        for(int i = 0; i < size; i++){
-                            for (int j = 0; j < size; j++) {
-                                cout << result[i * size + j] << "  ";
-                            }
-                            cout << endl;
-                        }
-                        cout << endl;
+                        print2Darray(result, 0, 0, size, size, 0);
                     }
 
                     delete[] buffer;
@@ -214,21 +195,8 @@ int main(int argc, char* argv[]) {
             //cout << "done init last" << endl;
 
             while(true){
-                double progress = 0;
-                for (int i = 1; i < n - 1; i++){
-                    for (int j = 1; j < m - 1; j++) {
-                        arrayB[i * m + j] = (arrayA[i * m + j - 1] + arrayA[i * m + j] + arrayA[i * m + j + 1] +
-                                             arrayA[(i - 1) * m + j] + arrayA[(i + 1) * m + j])/5;
-                    }
-                }
-
-                for (int i = 1; i < n - 1; i++){
-                    for (int j = 2; j < m - 1; j++) {
-                        arrayA[i * m + j] = (arrayB[i * m + j - 1] + arrayB[i * m + j] + arrayB[i * m + j + 1] +
-                                             arrayB[(i - 1) * m + j] + arrayB[(i + 1) * m + j])/5;
-                        progress += std::abs(arrayB[i * m + j] - arrayA[i * m + j]);
-                    }
-                }
+                double progress = stencil2D(arrayB, arrayA, m, 1, 1, n - 1, m - 1, 1,
+                                            2, n - 1, m - 1);
                 //cout << "iter last" << endl;
                 MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                 if(reducedProgress < epsilon){
@@ -259,20 +227,12 @@ int main(int argc, char* argv[]) {
                         buffer[(i - 1) * 2 + j - 2] = arrayA[i * m + j];
                     }
                 }
-                cout << "done fill buffer last, now sending" << endl;
+                //cout << "done fill buffer last, now sending" << endl;
                 MPI_Send(buffer, size * 2, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-                cout << "send last, now recv" << endl;
+                //cout << "send last, now recv" << endl;
                 MPI_Recv(buffer, size * 2, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 //cout << "done recv last, now reading buffer" << endl;
 
-                //print buffer
-                /*
-                for (int i = 0; i < size; i++) {
-                    for (int j = 0; j < 2; j++) {
-                        cout << buffer[i * 2 + j] << " ";
-                    }
-                    cout << endl;
-                } */
 
                 //read buffer
                 for (int i = 1; i < size + 1; i++) {
