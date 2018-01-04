@@ -1,9 +1,9 @@
-#include <stdio.h>
+#include <iostream>
 #include "mpi.h"
 #define N 12
 
 
-
+using namespace std;
 
 int main(int argc, char **argv) {
     int numtasks,taskid,numworkers,source,dest,rows,offset,i,j,k;
@@ -64,8 +64,8 @@ int main(int argc, char **argv) {
         printf("Result:\n");
         for (i = 0; i < N; i++) {
             for (j = 0; j < N; j++)
-                printf("%.2f   ", c[i * N + j]);
-            printf ("\n");
+                cout << c[i * N + j] << " ";
+            cout << endl;
         }
         
         delete[] a;
