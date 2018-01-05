@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     double reducedProgress = 0.;
     int iter = 0;
 
-    const double epsilon = 10.; // 10 or 100 for 512 or 768 according
+    const double epsilon = 1.; // 10 or 100 for 512 or 768 according
 
     cout.precision(4);
     cout << fixed;
@@ -250,6 +250,7 @@ int main(int argc, char *argv[]) {
             arrayB = new double[iblockSize * jblockSize]();
         }
 
+		MPI_Barrier(MPI_COMM_WORLD);  
         const std::chrono::time_point<std::chrono::high_resolution_clock>
         start(std::chrono::high_resolution_clock::now());
         double progress;

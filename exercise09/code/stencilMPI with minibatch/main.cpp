@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     double reducedProgress = 0.;
     int iter = 0;
     
-    int miniBatchSize = 8; //must be multiple of 2
+    int miniBatchSize = 64; //must be multiple of 2
 
     const double epsilon = 1.; // 10 or 100 for 512 or 768 according
 
