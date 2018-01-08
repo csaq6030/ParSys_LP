@@ -57,6 +57,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     
+    MPI_Barrier(MPI_COMM_WORLD);
+    
     start = MPI_Wtime();
     
     TYPE split = N / numtasks;
@@ -74,7 +76,7 @@ int main(int argc, char *argv[]) {
     
     if(taskid == 0) {
         cout << end - start << endl;
-        cout << "Results: " << reducedCount << endl;
+        //cout << "Results: " << reducedCount << endl;
     }
     
     
