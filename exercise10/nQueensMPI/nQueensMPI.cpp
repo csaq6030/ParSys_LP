@@ -35,7 +35,7 @@ void putQueen(TYPE *queens, const TYPE row, const TYPE col) {
 }
 
 void rec_n_queens(TYPE start, TYPE end) {
-    for(TYPE i = 0; i < N; i++) {
+    for(TYPE i = start; i < end; i++) {
         TYPE queens[N];
         putQueen(queens, 0, i);
     }
@@ -43,6 +43,7 @@ void rec_n_queens(TYPE start, TYPE end) {
 
 int main(int argc, char *argv[]) {
     int numtasks,taskid;
+    double start, end;
     
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
@@ -56,14 +57,23 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     
+    start = MPI_Wtime();
+    
     TYPE split = N / numtasks;
     
-    rec_n_queens(taskid * split, taskid * split + split);
+    if (taskid != numtasks - 1) { //needed for not devisable problem sizes
+        rec_n_queens(taskid * split, taskid * split + split);
+    } else {
+        rec_n_queens(taskid * split, N);
+    }
     
     TYPE reducedCount;
     MPI_Reduce(&solution, &reducedCount, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     
+    end = MPI_Wtime();
+    
     if(taskid == 0) {
+        cout << end - start << endl;
         cout << "Results: " << reducedCount << endl;
     }
     
