@@ -453,8 +453,11 @@ static void psinv(void *or, void *ou, int n1, int n2, int n3,
   int i3, i2, i1;
 
   double r1[M], r2[M];
+    
 
   if (timeron) timer_start(T_psinv);
+    
+#pragma omp parallel for default(shared) private(i1,i2,i3,r1,r2)
   for (i3 = 1; i3 < n3-1; i3++) {
     for (i2 = 1; i2 < n2-1; i2++) {
       for (i1 = 0; i1 < n1; i1++) {
@@ -517,6 +520,8 @@ static void resid(void *ou, void *ov, void *or, int n1, int n2, int n3,
   double u1[M], u2[M];
 
   if (timeron) timer_start(T_resid);
+    
+#pragma omp parallel for default(shared) private(i1,i2,i3,u1,u2)
   for (i3 = 1; i3 < n3-1; i3++) {
     for (i2 = 1; i2 < n2-1; i2++) {
       for (i1 = 0; i1 < n1; i1++) {
@@ -593,7 +598,8 @@ static void rprj3(void *or, int m1k, int m2k, int m3k,
   } else {
     d3 = 1;
   }
-
+    
+#pragma omp parallel for default(shared) private(j1,j2,j3,i1,i2,i3,x1,y1,x2,y2)
   for (j3 = 1; j3 < m3j-1; j3++) {
     i3 = 2*j3-d3;
     for (j2 = 1; j2 < m2j-1; j2++) {
@@ -661,7 +667,10 @@ static void interp(void *oz, int mm1, int mm2, int mm3,
   double z1[M], z2[M], z3[M];
 
   if (timeron) timer_start(T_interp);
+    
+
   if (n1 != 3 && n2 != 3 && n3 != 3) {
+    #pragma omp parallel for default(shared) private(i1,i2,i3,z1,z2,z3)
     for (i3 = 0; i3 < mm3-1; i3++) {
       for (i2 = 0; i2 < mm2-1; i2++) {
         for (i1 = 0; i1 < mm1; i1++) {
@@ -721,65 +730,71 @@ static void interp(void *oz, int mm1, int mm2, int mm3,
       t3 = 0;
     }
 
-    for (i3 = d3; i3 <= mm3-1; i3++) {
-      for (i2 = d2; i2 <= mm2-1; i2++) {
-        for (i1 = d1; i1 <= mm1-1; i1++) {
-          u[2*i3-d3-1][2*i2-d2-1][2*i1-d1-1] =
-            u[2*i3-d3-1][2*i2-d2-1][2*i1-d1-1]
-            + z[i3-1][i2-1][i1-1];
+      
+    #pragma omp parallel default(shared) private(i1,i2,i3,z)
+    {
+    #pragma omp for
+        for (i3 = d3; i3 <= mm3-1; i3++) {
+          for (i2 = d2; i2 <= mm2-1; i2++) {
+            for (i1 = d1; i1 <= mm1-1; i1++) {
+              u[2*i3-d3-1][2*i2-d2-1][2*i1-d1-1] =
+                u[2*i3-d3-1][2*i2-d2-1][2*i1-d1-1]
+                + z[i3-1][i2-1][i1-1];
+            }
+            for (i1 = 1; i1 <= mm1-1; i1++) {
+              u[2*i3-d3-1][2*i2-d2-1][2*i1-t1-1] =
+                u[2*i3-d3-1][2*i2-d2-1][2*i1-t1-1]
+                + 0.5 * (z[i3-1][i2-1][i1] + z[i3-1][i2-1][i1-1]);
+            }
+          }
+          for (i2 = 1; i2 <= mm2-1; i2++) {
+            for (i1 = d1; i1 <= mm1-1; i1++) {
+              u[2*i3-d3-1][2*i2-t2-1][2*i1-d1-1] =
+                u[2*i3-d3-1][2*i2-t2-1][2*i1-d1-1]
+                + 0.5 * (z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
+            }
+            for (i1 = 1; i1 <= mm1-1; i1++) {
+              u[2*i3-d3-1][2*i2-t2-1][2*i1-t1-1] =
+                u[2*i3-d3-1][2*i2-t2-1][2*i1-t1-1]
+                + 0.25 * (z[i3-1][i2][i1] + z[i3-1][i2-1][i1]
+                        + z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
+            }
+          }
         }
-        for (i1 = 1; i1 <= mm1-1; i1++) {
-          u[2*i3-d3-1][2*i2-d2-1][2*i1-t1-1] =
-            u[2*i3-d3-1][2*i2-d2-1][2*i1-t1-1]
-            + 0.5 * (z[i3-1][i2-1][i1] + z[i3-1][i2-1][i1-1]);
-        }
-      }
-      for (i2 = 1; i2 <= mm2-1; i2++) {
-        for (i1 = d1; i1 <= mm1-1; i1++) {
-          u[2*i3-d3-1][2*i2-t2-1][2*i1-d1-1] =
-            u[2*i3-d3-1][2*i2-t2-1][2*i1-d1-1]
-            + 0.5 * (z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
-        }
-        for (i1 = 1; i1 <= mm1-1; i1++) {
-          u[2*i3-d3-1][2*i2-t2-1][2*i1-t1-1] =
-            u[2*i3-d3-1][2*i2-t2-1][2*i1-t1-1]
-            + 0.25 * (z[i3-1][i2][i1] + z[i3-1][i2-1][i1]
-                    + z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
-        }
+            
+    #pragma omp for
+        for (i3 = 1; i3 <= mm3-1; i3++) {
+          for (i2 = d2; i2 <= mm2-1; i2++) {
+            for (i1 = d1; i1 <= mm1-1; i1++) {
+              u[2*i3-t3-1][2*i2-d2-1][2*i1-d1-1] =
+                u[2*i3-t3-1][2*i2-d2-1][2*i1-d1-1]
+                + 0.5 * (z[i3][i2-1][i1-1] + z[i3-1][i2-1][i1-1]);
+            }
+            for (i1 = 1; i1 <= mm1-1; i1++) {
+              u[2*i3-t3-1][2*i2-d2-1][2*i1-t1-1] =
+                u[2*i3-t3-1][2*i2-d2-1][2*i1-t1-1]
+                + 0.25 * (z[i3  ][i2-1][i1] + z[i3  ][i2-1][i1-1]
+                        + z[i3-1][i2-1][i1] + z[i3-1][i2-1][i1-1]);
+            }
+          }
+          for (i2 = 1; i2 <= mm2-1; i2++) {
+            for (i1 = d1; i1 <= mm1-1; i1++) {
+              u[2*i3-t3-1][2*i2-t2-1][2*i1-d1-1] =
+                u[2*i3-t3-1][2*i2-t2-1][2*i1-d1-1]
+                + 0.25 * (z[i3  ][i2][i1-1] + z[i3  ][i2-1][i1-1]
+                        + z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
+            }
+            for (i1 = 1; i1 <= mm1-1; i1++) {
+              u[2*i3-t3-1][2*i2-t2-1][2*i1-t1-1] =
+                u[2*i3-t3-1][2*i2-t2-1][2*i1-t1-1]
+                + 0.125 * (z[i3  ][i2][i1  ] + z[i3  ][i2-1][i1  ]
+                         + z[i3  ][i2][i1-1] + z[i3  ][i2-1][i1-1]
+                         + z[i3-1][i2][i1  ] + z[i3-1][i2-1][i1  ]
+                         + z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
+            }
       }
     }
-
-    for (i3 = 1; i3 <= mm3-1; i3++) {
-      for (i2 = d2; i2 <= mm2-1; i2++) {
-        for (i1 = d1; i1 <= mm1-1; i1++) {
-          u[2*i3-t3-1][2*i2-d2-1][2*i1-d1-1] =
-            u[2*i3-t3-1][2*i2-d2-1][2*i1-d1-1]
-            + 0.5 * (z[i3][i2-1][i1-1] + z[i3-1][i2-1][i1-1]);
-        }
-        for (i1 = 1; i1 <= mm1-1; i1++) {
-          u[2*i3-t3-1][2*i2-d2-1][2*i1-t1-1] =
-            u[2*i3-t3-1][2*i2-d2-1][2*i1-t1-1]
-            + 0.25 * (z[i3  ][i2-1][i1] + z[i3  ][i2-1][i1-1]
-                    + z[i3-1][i2-1][i1] + z[i3-1][i2-1][i1-1]);
-        }
-      }
-      for (i2 = 1; i2 <= mm2-1; i2++) {
-        for (i1 = d1; i1 <= mm1-1; i1++) {
-          u[2*i3-t3-1][2*i2-t2-1][2*i1-d1-1] =
-            u[2*i3-t3-1][2*i2-t2-1][2*i1-d1-1]
-            + 0.25 * (z[i3  ][i2][i1-1] + z[i3  ][i2-1][i1-1]
-                    + z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
-        }
-        for (i1 = 1; i1 <= mm1-1; i1++) {
-          u[2*i3-t3-1][2*i2-t2-1][2*i1-t1-1] =
-            u[2*i3-t3-1][2*i2-t2-1][2*i1-t1-1]
-            + 0.125 * (z[i3  ][i2][i1  ] + z[i3  ][i2-1][i1  ]
-                     + z[i3  ][i2][i1-1] + z[i3  ][i2-1][i1-1]
-                     + z[i3-1][i2][i1  ] + z[i3-1][i2-1][i1  ]
-                     + z[i3-1][i2][i1-1] + z[i3-1][i2-1][i1-1]);
-        }
-      }
-    }
+  }
   }
   if (timeron) timer_stop(T_interp);
 
@@ -820,6 +835,7 @@ static void norm2u3(void *or, int n1, int n2, int n3,
   max_rnmu = 0.0;
 
   double my_rnmu = 0.0;
+#pragma omp parallel for default(shared) private(i1,i2,i3,a) reduction(+:s) reduction(max:my_rnmu)
   for (i3 = 1; i3 < n3-1; i3++) {
     for (i2 = 1; i2 < n2-1; i2++) {
       for (i1 = 1; i1 < n1-1; i1++) {
@@ -864,26 +880,27 @@ static void comm3(void *ou, int n1, int n2, int n3, int kk)
 
   if (timeron) timer_start(T_comm3);
 
-  for (i3 = 1; i3 < n3-1; i3++) {
-    for (i2 = 1; i2 < n2-1; i2++) {
-      u[i3][i2][   0] = u[i3][i2][n1-2];
-      u[i3][i2][n1-1] = u[i3][i2][   1];
-    }
-//  }
+      for (i3 = 1; i3 < n3-1; i3++) {
+        for (i2 = 1; i2 < n2-1; i2++) {
+          u[i3][i2][   0] = u[i3][i2][n1-2];
+          u[i3][i2][n1-1] = u[i3][i2][   1];
+        }
+    //  }
 
-//  for (i3 = 1; i3 < n3-1; i3++) {
-    for (i1 = 0; i1 < n1; i1++) {
-      u[i3][   0][i1] = u[i3][n2-2][i1];
-      u[i3][n2-1][i1] = u[i3][   1][i1];
-    }
-  }
+    //  for (i3 = 1; i3 < n3-1; i3++) {
+        for (i1 = 0; i1 < n1; i1++) {
+          u[i3][   0][i1] = u[i3][n2-2][i1];
+          u[i3][n2-1][i1] = u[i3][   1][i1];
+        }
+      }
 
-  for (i2 = 0; i2 < n2; i2++) {
-    for (i1 = 0; i1 < n1; i1++) {
-      u[   0][i2][i1] = u[n3-2][i2][i1];
-      u[n3-1][i2][i1] = u[   1][i2][i1];
-    }
-  }
+      for (i2 = 0; i2 < n2; i2++) {
+        for (i1 = 0; i1 < n1; i1++) {
+          u[   0][i2][i1] = u[n3-2][i2][i1];
+          u[n3-1][i2][i1] = u[   1][i2][i1];
+        }
+      }
+    
   if (timeron) timer_stop(T_comm3);
 }
 
@@ -1069,7 +1086,8 @@ static void zran3(void *oz, int n1, int n2, int n3, int nx1, int ny1, int k)
     if (++cnt % 10 == 0) printf("\n");
   }
   */
-
+    
+#pragma omp parallel for
   for (i3 = 0; i3 < n3; i3++) {
     for (i2 = 0; i2 < n2; i2++) {
       for (i1 = 0; i1 < n1; i1++) {
@@ -1205,6 +1223,7 @@ static void zero3(void *oz, int n1, int n2, int n3)
 
   int i1, i2, i3;
 
+#pragma omp parallel for
   for (i3 = 0; i3 < n3; i3++) {
     for (i2 = 0; i2 < n2; i2++) {
       for (i1 = 0; i1 < n1; i1++) {

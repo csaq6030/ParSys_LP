@@ -82,3 +82,9 @@ exercise11/realWorldCode/real.dSYM/Contents/Info.plist
 exercise11/realWorldCode/real.dSYM/Contents/Resources/DWARF/real
 
 exercise11/realWorldCode/real
+
+exercise11/realWorldCode/realOMP
+
+*.plist
+
+exercise11/realWorldCode/realOMP.dSYM/Contents/Resources/DWARF/realOMP
