@@ -1,1 +1,1 @@
-gcc *.c -O3 -o real -lm -g3
+gcc *.c -O3 -o real -lm -g3 -fopenmp
