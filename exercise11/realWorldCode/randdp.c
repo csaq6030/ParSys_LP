@@ -119,7 +119,6 @@ void vranlc( int n, double *x, double a, double y[] )
   //--------------------------------------------------------------------
   //  Generate N results.   This loop is not vectorizable.
   //--------------------------------------------------------------------
-#pragma parallel for
   for ( i = 0; i < n; i++ ) {
     //--------------------------------------------------------------------
     //  Break X into two parts such that X = 2^23 * X1 + X2, compute
