@@ -16,12 +16,12 @@ int main(int argc, char *argv[]) {
     const double down = 0;//0.;
     const double left = -0.5;//-0.5;
     const double right = 0.5;//0.5;
-    double reducedProgress = 10.;
+    double reducedProgress = 1.;
     int iter = 0;
     
-    int miniBatchSize = 2; //must be multiple of 2
+    int miniBatchSize = 256; //must be multiple of 2
 
-    const double epsilon = 10.; // 10 or 100 for 512 or 768 according
+    const double epsilon = 1.; // 10 or 100 for 512 or 768 according
 
     cout.precision(4);
     cout << fixed;
@@ -336,46 +336,77 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 // 2nd iteration
-                #pragma omp for reduction(+: progress) 
-                for (int i = 2; i < 4; i++) {
-                    for (int j = 2; j < iblockSize - 2; j++) {
-                        // top border cells
-                        arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
-                                                      arrayB[(i + 1) * iblockSize + j]
-                                                      + arrayB[i * iblockSize + j - 1] + arrayB[i * iblockSize + j + 1]) /
-                                                     5;
-                        // bottom border cells
-                        arrayA[jblockSize * iblockSize - (i + 1) * iblockSize + j] =
-                                (arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j]
-                                 + arrayB[jblockSize * iblockSize - (i + 2) * iblockSize + j] +
-                                 arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j + 1]
-                                 + arrayB[jblockSize * iblockSize - (i) * iblockSize + j] +
-                                 arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j - 1]) / 5;
-                        if(internal_iter==miniBatchSize){
+                if(internal_iter==miniBatchSize){
+                    #pragma omp for reduction(+: progress) 
+                    for (int i = 2; i < 4; i++) {
+                        for (int j = 2; j < iblockSize - 2; j++) {
+                            // top border cells
+                            arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
+                                                          arrayB[(i + 1) * iblockSize + j]
+                                                          + arrayB[i * iblockSize + j - 1] + arrayB[i * iblockSize + j + 1]) /
+                                                         5;
+                            // bottom border cells
+                            arrayA[jblockSize * iblockSize - (i + 1) * iblockSize + j] =
+                                    (arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j]
+                                     + arrayB[jblockSize * iblockSize - (i + 2) * iblockSize + j] +
+                                     arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j + 1]
+                                     + arrayB[jblockSize * iblockSize - (i) * iblockSize + j] +
+                                     arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j - 1]) / 5;
                             progress += std::abs(arrayB[i * iblockSize + j] - arrayA[i * iblockSize + j]);
                             progress += std::abs(arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j] -
-                                             arrayA[jblockSize * iblockSize - (i + 1) * iblockSize + j]);
+                                                 arrayA[jblockSize * iblockSize - (i + 1) * iblockSize + j]);
                         }
                     }
-                }
-                #pragma omp for reduction(+: progress) 
-                for (int j = 4; j < jblockSize - 4; j++) {
-                    for (int i = 2; i < 4; i++) {
-                        // left border cells
-                        arrayA[j * iblockSize + i] = (arrayB[j * iblockSize + i] + arrayB[(j - 1) * iblockSize + i] +
-                                                      arrayB[(j + 1) * iblockSize + i]
-                                                      + arrayB[j * iblockSize + i - 1] + arrayB[j * iblockSize + i + 1]) / 5;
-                        // right border cells
-                        arrayA[(j + 1) * iblockSize - 1 - i] =
-                                (arrayB[(j + 1) * iblockSize - 1 - i] + arrayB[(j) * iblockSize - 1 - i] +
-                                 arrayB[(j + 2) * iblockSize - 1 - i]
-                                 + arrayB[(j + 1) * iblockSize - 2 - i] + arrayB[(j + 1) * iblockSize - i]) / 5;
-                        if(internal_iter==miniBatchSize){
+                    #pragma omp for reduction(+: progress) 
+                    for (int j = 4; j < jblockSize - 4; j++) {
+                        for (int i = 2; i < 4; i++) {
+                            // left border cells
+                            arrayA[j * iblockSize + i] = (arrayB[j * iblockSize + i] + arrayB[(j - 1) * iblockSize + i] +
+                                                          arrayB[(j + 1) * iblockSize + i]
+                                                          + arrayB[j * iblockSize + i - 1] + arrayB[j * iblockSize + i + 1]) / 5;
+                            // right border cells
+                            arrayA[(j + 1) * iblockSize - 1 - i] =
+                                    (arrayB[(j + 1) * iblockSize - 1 - i] + arrayB[(j) * iblockSize - 1 - i] +
+                                     arrayB[(j + 2) * iblockSize - 1 - i]
+                                     + arrayB[(j + 1) * iblockSize - 2 - i] + arrayB[(j + 1) * iblockSize - i]) / 5;
                             progress += std::abs(arrayB[j * iblockSize + i] - arrayA[j * iblockSize + i]);
                             progress += std::abs(arrayB[(j + 1) * iblockSize - 1 - i] - arrayA[(j + 1) * iblockSize - 1 - i]);
                         }
                     }
+                }else{
+                    #pragma omp for
+                    for (int i = 2; i < 4; i++) {
+                        for (int j = 2; j < iblockSize - 2; j++) {
+                            // top border cells
+                            arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
+                                                          arrayB[(i + 1) * iblockSize + j]
+                                                          + arrayB[i * iblockSize + j - 1] + arrayB[i * iblockSize + j + 1]) /
+                                                         5;
+                            // bottom border cells
+                            arrayA[jblockSize * iblockSize - (i + 1) * iblockSize + j] =
+                                    (arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j]
+                                     + arrayB[jblockSize * iblockSize - (i + 2) * iblockSize + j] +
+                                     arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j + 1]
+                                     + arrayB[jblockSize * iblockSize - (i) * iblockSize + j] +
+                                     arrayB[jblockSize * iblockSize - (i + 1) * iblockSize + j - 1]) / 5;
+                        }
+                    }
+                    #pragma omp for
+                    for (int j = 4; j < jblockSize - 4; j++) {
+                        for (int i = 2; i < 4; i++) {
+                            // left border cells
+                            arrayA[j * iblockSize + i] = (arrayB[j * iblockSize + i] + arrayB[(j - 1) * iblockSize + i] +
+                                                          arrayB[(j + 1) * iblockSize + i]
+                                                          + arrayB[j * iblockSize + i - 1] + arrayB[j * iblockSize + i + 1]) / 5;
+                            // right border cells
+                            arrayA[(j + 1) * iblockSize - 1 - i] =
+                                    (arrayB[(j + 1) * iblockSize - 1 - i] + arrayB[(j) * iblockSize - 1 - i] +
+                                     arrayB[(j + 2) * iblockSize - 1 - i]
+                                     + arrayB[(j + 1) * iblockSize - 2 - i] + arrayB[(j + 1) * iblockSize - i]) / 5;
+                        }
+                    }
                 }
+                
                 #pragma omp barrier
                 MPI_Request req[8];
                 if(tId==0){
@@ -415,14 +446,25 @@ int main(int argc, char *argv[]) {
                                                       + arrayA[i * iblockSize + j - 1] + arrayA[i * iblockSize + j + 1]) / 5;
                     }
                 }
-                #pragma omp for reduction(+: progress) 
-                for (int i = 4; i < jblockSize - 4; i++) {
-                    for (int j = 4; j < iblockSize - 4; j++) {
-                        arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
-                                                      arrayB[(i + 1) * iblockSize + j]
-                                                      + arrayB[i * iblockSize + j - 1] + arrayB[i * iblockSize + j + 1]) / 5;
-                        if(internal_iter==miniBatchSize)
-                            progress += std::abs(arrayA[i * iblockSize + j] - arrayB[i * iblockSize + j]);
+                
+                if(internal_iter==miniBatchSize){
+                    #pragma omp for reduction(+: progress) 
+                    for (int i = 4; i < jblockSize - 4; i++) {
+                        for (int j = 4; j < iblockSize - 4; j++) {
+                            arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
+                                                          arrayB[(i + 1) * iblockSize + j]
+                                                          + arrayB[i * iblockSize + j - 1] + arrayB[i * iblockSize + j + 1]) / 5;
+                                progress += std::abs(arrayA[i * iblockSize + j] - arrayB[i * iblockSize + j]);
+                        }
+                    }
+                }else{
+                    #pragma omp for  
+                    for (int i = 4; i < jblockSize - 4; i++) {
+                        for (int j = 4; j < iblockSize - 4; j++) {
+                            arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
+                                                          arrayB[(i + 1) * iblockSize + j]
+                                                          + arrayB[i * iblockSize + j - 1] + arrayB[i * iblockSize + j + 1]) / 5;
+                        }
                     }
                 }
                 // synchronize 
