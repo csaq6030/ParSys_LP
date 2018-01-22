@@ -15,10 +15,10 @@ int main(int argc, char **argv) {
     MPI_Status status;
     
     
-#pragma openmp parallel
+#pragma omp parallel
     {
         int threadNum = omp_get_thread_num();
-        cout << "mpirank: " << numtasks << "num omp thread: " << thread << endl;
+        cout << "mpirank: " << taskid << " num omp thread: " << threadNum << endl;
     }
     
     

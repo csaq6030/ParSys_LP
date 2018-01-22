@@ -11,7 +11,7 @@
 #$ -cwd
 
 # Redirect output stream to this file.
-#$ -o output.dat
+#$ -o output.txt
 
 # Join the error stream to the output stream.
 #$ -j yes
@@ -24,7 +24,7 @@
 
 # Use the parallel environment "openmp" with 8 job slots. Each requested
 # job slot will be assigned one core on the execution host.
-#$ -pe openmpi-1perhost 2
+#$ -pe openmpi-fillup 16
 
 # Allocate 2 Gigabytes per job slot.
 # The total memory available to your program
@@ -35,5 +35,9 @@
 #$ -l h_vmem=2G
 
 # tell OpenMP how many threads to start
+
+export OMP_NUM_THREADS=8
+module load gcc/5.1.0
+module load openmpi/2.1.1
 
 ./job_script_helper.sh
