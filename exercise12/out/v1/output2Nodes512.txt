@@ -1,0 +1,16 @@
+  Loading gcc/5.1.0
+  Loading openmpi/2.1.1 for compiler gcc-5.1.0
+23694
+0 Iterations: 21248
+
+23668
+0 Iterations: 21248
+
+24056
+0 Iterations: 21248
+
+23365
+0 Iterations: 21248
+
+23484
+0 Iterations: 21248
