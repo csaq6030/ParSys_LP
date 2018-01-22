@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
         MPI_Type_vector(jblockSize - 4, 2, iblockSize, MPI_DOUBLE, &sideBorderType);
         MPI_Type_commit(&sideBorderType);
         
-#pragma openmp parallel
+#pragma omp parallel
 {
         int tID = tid = omp_get_thread_num();
         if(tID==0){ //only master from shared mem initializes
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
                 internal_iter += 2;
                 // calculate border values
                 // first iteration, calculate only when neighbor exist -> ignore when borderline
-                #openmp for
+                #pragma omp for
                 for (int i = 1; i < 5; i++) {
                     int j = 1, limitj = iblockSize - 1;
                     if (leftid == MPI_PROC_NULL) {
@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                #openmp for
+                #pragma omp for
                 for (int j = 5; j < jblockSize - 5; j++) {
                     for (int i = 1; i < 5; i++) {
                         // left border cells
@@ -318,7 +318,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 // 2nd iteration
-                #openmp for
+                #pragma omp for
                 for (int i = 2; i < 4; i++) {
                     for (int j = 2; j < iblockSize - 2; j++) {
                         // top border cells
@@ -340,7 +340,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                #openmp for
+                #pragma omp for
                 for (int j = 4; j < jblockSize - 4; j++) {
                     for (int i = 2; i < 4; i++) {
                         // left border cells
@@ -387,7 +387,7 @@ int main(int argc, char *argv[]) {
                               MPI_COMM_WORLD, &req[5]);
                 }
                 // calculate interiors
-                #openmp for
+                #pragma omp for
                 for (int i = 5; i < jblockSize - 5; i++) {
                     for (int j = 5; j < iblockSize - 5; j++) {
                         arrayB[i * iblockSize + j] = (arrayA[i * iblockSize + j] + arrayA[(i - 1) * iblockSize + j] +
@@ -395,7 +395,7 @@ int main(int argc, char *argv[]) {
                                                       + arrayA[i * iblockSize + j - 1] + arrayA[i * iblockSize + j + 1]) / 5;
                     }
                 }
-                #openmp for
+                #pragma omp for
                 for (int i = 4; i < jblockSize - 4; i++) {
                     for (int j = 4; j < iblockSize - 4; j++) {
                         arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
