@@ -3,6 +3,7 @@
 #include <chrono>
 #include <mpi.h>
 #include "helper.h"
+#include <omp.h>
 
 using namespace std;
 
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]) {
     
     int miniBatchSize = 64; //must be multiple of 2
 
-    const double epsilon = 1.; // 10 or 100 for 512 or 768 according
+    const double epsilon = 10.; // 10 or 100 for 512 or 768 according
 
     cout.precision(4);
     cout << fixed;
@@ -100,8 +101,8 @@ int main(int argc, char *argv[]) {
         
 #pragma omp parallel
 {
-        int tID = tid = omp_get_thread_num();
-        if(tID==0){ //only master from shared mem initializes
+        int tId = omp_get_thread_num();
+        if(tId==0){ //only master from shared mem initializes
 
             //neighbor indexing and initialize array
             if (myid == 0 && worldSize == 2) {   //special case with 3 borders
@@ -257,10 +258,10 @@ int main(int argc, char *argv[]) {
                 arrayB = new double[iblockSize * jblockSize]();
             }
         }
-
+        //#pragma omp barrier
         MPI_Barrier(MPI_COMM_WORLD);  
         const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
-        
+
         double progress;
         do {
             progress = 0;
@@ -269,7 +270,7 @@ int main(int argc, char *argv[]) {
                 internal_iter += 2;
                 // calculate border values
                 // first iteration, calculate only when neighbor exist -> ignore when borderline
-                #pragma omp for
+                //#pragma omp for
                 for (int i = 1; i < 5; i++) {
                     int j = 1, limitj = iblockSize - 1;
                     if (leftid == MPI_PROC_NULL) {
@@ -298,7 +299,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                #pragma omp for
+                //#pragma omp for
                 for (int j = 5; j < jblockSize - 5; j++) {
                     for (int i = 1; i < 5; i++) {
                         // left border cells
@@ -318,7 +319,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 // 2nd iteration
-                #pragma omp for
+                //#pragma omp for
                 for (int i = 2; i < 4; i++) {
                     for (int j = 2; j < iblockSize - 2; j++) {
                         // top border cells
@@ -340,7 +341,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                #pragma omp for
+                //#pragma omp for
                 for (int j = 4; j < jblockSize - 4; j++) {
                     for (int i = 2; i < 4; i++) {
                         // left border cells
@@ -358,7 +359,9 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                if(tID==0){
+                //#pragma omp barrier
+                MPI_Request req[8];
+                if(tId==0){
                     // treat arrayB as send buffers
                     if (upid != MPI_PROC_NULL)
                         memcpy(&arrayB[0], &arrayA[2 * iblockSize], 2 * iblockSize * sizeof(double));
@@ -372,7 +375,7 @@ int main(int argc, char *argv[]) {
                             memcpy(&arrayB[(i + 3) * iblockSize - 2], &arrayA[(i + 3) * iblockSize - 4], 2 * sizeof(double));
                     }
                     // send out/receive ghost-cells
-                    MPI_Request req[8];
+                    
                     MPI_Isend(&arrayB[0], 2 * iblockSize, MPI_DOUBLE, upid, 0, MPI_COMM_WORLD, &req[0]); // up border
                     MPI_Isend(&arrayB[iblockSize * jblockSize - 2 * iblockSize], 2 * iblockSize, MPI_DOUBLE, downid, 0,
                               MPI_COMM_WORLD, &req[1]);  //down border
@@ -387,7 +390,7 @@ int main(int argc, char *argv[]) {
                               MPI_COMM_WORLD, &req[5]);
                 }
                 // calculate interiors
-                #pragma omp for
+                //#pragma omp for
                 for (int i = 5; i < jblockSize - 5; i++) {
                     for (int j = 5; j < iblockSize - 5; j++) {
                         arrayB[i * iblockSize + j] = (arrayA[i * iblockSize + j] + arrayA[(i - 1) * iblockSize + j] +
@@ -395,7 +398,7 @@ int main(int argc, char *argv[]) {
                                                       + arrayA[i * iblockSize + j - 1] + arrayA[i * iblockSize + j + 1]) / 5;
                     }
                 }
-                #pragma omp for
+                //#pragma omp for
                 for (int i = 4; i < jblockSize - 4; i++) {
                     for (int j = 4; j < iblockSize - 4; j++) {
                         arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
@@ -417,12 +420,15 @@ int main(int argc, char *argv[]) {
             
         } while (reducedProgress >= epsilon);
         
-}
-
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        if (output){
+            if (myid == 0){
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start);
-        if (myid == 0)
-            cout << elapsed.count() << endl;
+                    cout << elapsed.count() << endl;
+                cout << "Iterations: " << iter << endl << endl;
+            }
+        }
+}
 //        if (output) {
 //            int i = 0;
 //            if(myid==0){
@@ -438,10 +444,7 @@ int main(int argc, char *argv[]) {
 //                print2Darray(arrayA, 0, 0, jblockSize, iblockSize, myid);
 //            }
 //        }
-        if (output)
-            if (myid == 0)
-                cout << "Iterations: " << iter << endl << endl;
-
+        
         MPI_Type_free(&sideBorderType);
         delete[] arrayA;
         delete[] arrayB;
