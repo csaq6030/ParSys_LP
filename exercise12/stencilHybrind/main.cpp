@@ -10,16 +10,16 @@ using namespace std;
 int main(int argc, char *argv[]) {
     const bool output = true;
 
-    const int size = 768; //512 or 768
+    const int size = 512; //512 or 768
 
     const double up = 1.;
     const double down = 0;//0.;
     const double left = -0.5;//-0.5;
     const double right = 0.5;//0.5;
-    double reducedProgress = 0.;
+    double reducedProgress = 10.;
     int iter = 0;
     
-    int miniBatchSize = 64; //must be multiple of 2
+    int miniBatchSize = 2; //must be multiple of 2
 
     const double epsilon = 10.; // 10 or 100 for 512 or 768 according
 
@@ -99,10 +99,11 @@ int main(int argc, char *argv[]) {
         MPI_Type_vector(jblockSize - 4, 2, iblockSize, MPI_DOUBLE, &sideBorderType);
         MPI_Type_commit(&sideBorderType);
         
-#pragma omp parallel
+        double progress = 0;
+#pragma omp parallel shared(arrayA, arrayB, progress) private(leftid, rightid, upid, downid)
 {
         int tId = omp_get_thread_num();
-        if(tId==0){ //only master from shared mem initializes
+        { //only master from shared mem initializes
 
             //neighbor indexing and initialize array
             if (myid == 0 && worldSize == 2) {   //special case with 3 borders
@@ -110,16 +111,18 @@ int main(int argc, char *argv[]) {
                 upid = MPI_PROC_NULL;
                 downid = myid + i_range;
                 rightid = MPI_PROC_NULL;
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[(iblockSize) + i] = up;
-                    arrayB[(iblockSize) + i] = up;
-                    if (i < jblockSize) {
-                        arrayA[i * (iblockSize) + 1] = left;
-                        arrayB[i * (iblockSize) + 1] = left;
-                        arrayA[(i + 1) * (iblockSize) - 2] = right;
-                        arrayB[(i + 1) * (iblockSize) - 2] = right;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[(iblockSize) + i] = up;
+                        arrayB[(iblockSize) + i] = up;
+                        if (i < jblockSize) {
+                            arrayA[i * (iblockSize) + 1] = left;
+                            arrayB[i * (iblockSize) + 1] = left;
+                            arrayA[(i + 1) * (iblockSize) - 2] = right;
+                            arrayB[(i + 1) * (iblockSize) - 2] = right;
+                        }
                     }
                 }
             } else if (myid == worldSize - 1 && worldSize == 2) { //special case with 3 borders
@@ -127,16 +130,18 @@ int main(int argc, char *argv[]) {
                 downid = MPI_PROC_NULL;
                 upid = myid - i_range;
                 leftid = MPI_PROC_NULL;
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
-                    arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
-                    if (i < jblockSize) {
-                        arrayB[(i + 1) * (iblockSize) - 2] = right;
-                        arrayA[(i + 1) * (iblockSize) - 2] = right;
-                        arrayA[i * (iblockSize) + 1] = left;
-                        arrayB[i * (iblockSize) + 1] = left;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                        arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                        if (i < jblockSize) {
+                            arrayB[(i + 1) * (iblockSize) - 2] = right;
+                            arrayA[(i + 1) * (iblockSize) - 2] = right;
+                            arrayA[i * (iblockSize) + 1] = left;
+                            arrayB[i * (iblockSize) + 1] = left;
+                        }
                     }
                 }
             } else if (myid == 0) {  //top-left case
@@ -144,14 +149,16 @@ int main(int argc, char *argv[]) {
                 upid = MPI_PROC_NULL;
                 downid = myid + i_range;
                 rightid = myid + 1;
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[(iblockSize) + i] = up;
-                    arrayB[(iblockSize) + i] = up;
-                    if (i < jblockSize) {
-                        arrayA[i * (iblockSize) + 1] = left;
-                        arrayB[i * (iblockSize) + 1] = left;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[(iblockSize) + i] = up;
+                        arrayB[(iblockSize) + i] = up;
+                        if (i < jblockSize) {
+                            arrayA[i * (iblockSize) + 1] = left;
+                            arrayB[i * (iblockSize) + 1] = left;
+                        }
                     }
                 }
             } else if (myid < i_range - 1) { //top-middle cases
@@ -159,26 +166,29 @@ int main(int argc, char *argv[]) {
                 downid = myid + i_range;
                 leftid = myid - 1;
                 rightid = myid + 1;
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[(iblockSize) + i] = up;
-                    arrayB[(iblockSize) + i] = up;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[(iblockSize) + i] = up;
+                        arrayB[(iblockSize) + i] = up;
+                    }
                 }
             } else if (myid == i_range - 1) { // top-right case
                 upid = MPI_PROC_NULL;
                 rightid = MPI_PROC_NULL;
                 downid = myid + i_range;
                 leftid = myid - 1;
-
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[(iblockSize) + i] = up;
-                    arrayB[(iblockSize) + i] = up;
-                    if (i < jblockSize) {
-                        arrayA[(i + 1) * (iblockSize) - 2] = right;
-                        arrayB[(i + 1) * (iblockSize) - 2] = right;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[(iblockSize) + i] = up;
+                        arrayB[(iblockSize) + i] = up;
+                        if (i < jblockSize) {
+                            arrayA[(i + 1) * (iblockSize) - 2] = right;
+                            arrayB[(i + 1) * (iblockSize) - 2] = right;
+                        }
                     }
                 }
             } else if (myid == worldSize - i_range) { // left-bottom case
@@ -186,15 +196,16 @@ int main(int argc, char *argv[]) {
                 leftid = MPI_PROC_NULL;
                 upid = myid - i_range;
                 rightid = myid + 1;
-
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
-                    arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
-                    if (i < jblockSize) {
-                        arrayA[i * (iblockSize) + 1] = left;
-                        arrayB[i * (iblockSize) + 1] = left;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                        arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                        if (i < jblockSize) {
+                            arrayA[i * (iblockSize) + 1] = left;
+                            arrayB[i * (iblockSize) + 1] = left;
+                        }
                     }
                 }
             } else if (myid == worldSize - 1) {    // right-bottom case
@@ -202,14 +213,16 @@ int main(int argc, char *argv[]) {
                 downid = MPI_PROC_NULL;
                 upid = myid - i_range;
                 leftid = myid - 1;
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
-                    arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
-                    if (i < jblockSize) {
-                        arrayB[(i + 1) * (iblockSize) - 2] = right;
-                        arrayA[(i + 1) * (iblockSize) - 2] = right;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                        arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                        if (i < jblockSize) {
+                            arrayB[(i + 1) * (iblockSize) - 2] = right;
+                            arrayA[(i + 1) * (iblockSize) - 2] = right;
+                        }
                     }
                 }
             } else if (myid % i_range == 0) { // left-middle cases
@@ -217,52 +230,56 @@ int main(int argc, char *argv[]) {
                 upid = myid - i_range;
                 downid = myid + i_range;
                 rightid = myid + 1;
-
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < jblockSize; i++) {
-                    arrayA[i * (iblockSize) + 1] = left;
-                    arrayB[i * (iblockSize) + 1] = left;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < jblockSize; i++) {
+                        arrayA[i * (iblockSize) + 1] = left;
+                        arrayB[i * (iblockSize) + 1] = left;
+                    }
                 }
             } else if (myid % i_range == i_range - 1) {  // right-middle cases
                 rightid = MPI_PROC_NULL;
                 upid = myid - i_range;
                 downid = myid + i_range;
                 leftid = myid - 1;
-
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < jblockSize; i++) {
-                    arrayA[(i + 1) * (iblockSize) - 2] = right;
-                    arrayB[(i + 1) * (iblockSize) - 2] = right;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < jblockSize; i++) {
+                        arrayA[(i + 1) * (iblockSize) - 2] = right;
+                        arrayB[(i + 1) * (iblockSize) - 2] = right;
+                    }
                 }
             } else if (myid > i_range * j_range - i_range) {   // bottom-middle cases
                 downid = MPI_PROC_NULL;
                 upid = myid - i_range;
                 leftid = myid - 1;
                 rightid = myid + 1;
-
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
-                for (int i = 0; i < iblockSize; i++) {
-                    arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
-                    arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                    for (int i = 0; i < iblockSize; i++) {
+                        arrayA[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                        arrayB[iblockSize * jblockSize - i - 1 - iblockSize] = down;
+                    }
                 }
             } else {  //interiors
                 upid = myid - i_range;
                 downid = myid + i_range;
                 leftid = myid - 1;
                 rightid = myid + 1;
-
-                arrayA = new double[iblockSize * jblockSize]();
-                arrayB = new double[iblockSize * jblockSize]();
+                if(tId==0){
+                    arrayA = new double[iblockSize * jblockSize]();
+                    arrayB = new double[iblockSize * jblockSize]();
+                }
             }
         }
-        //#pragma omp barrier
-        MPI_Barrier(MPI_COMM_WORLD);  
+        #pragma omp barrier
+        if(tId==0)
+            MPI_Barrier(MPI_COMM_WORLD);  
         const std::chrono::time_point<std::chrono::high_resolution_clock> start(std::chrono::high_resolution_clock::now());
 
-        double progress;
         do {
             progress = 0;
             int internal_iter = 0;
@@ -270,7 +287,7 @@ int main(int argc, char *argv[]) {
                 internal_iter += 2;
                 // calculate border values
                 // first iteration, calculate only when neighbor exist -> ignore when borderline
-                //#pragma omp for
+                #pragma omp for
                 for (int i = 1; i < 5; i++) {
                     int j = 1, limitj = iblockSize - 1;
                     if (leftid == MPI_PROC_NULL) {
@@ -299,7 +316,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                //#pragma omp for
+                #pragma omp for
                 for (int j = 5; j < jblockSize - 5; j++) {
                     for (int i = 1; i < 5; i++) {
                         // left border cells
@@ -319,7 +336,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 // 2nd iteration
-                //#pragma omp for
+                #pragma omp for reduction(+: progress) 
                 for (int i = 2; i < 4; i++) {
                     for (int j = 2; j < iblockSize - 2; j++) {
                         // top border cells
@@ -341,7 +358,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                //#pragma omp for
+                #pragma omp for reduction(+: progress) 
                 for (int j = 4; j < jblockSize - 4; j++) {
                     for (int i = 2; i < 4; i++) {
                         // left border cells
@@ -359,7 +376,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                //#pragma omp barrier
+                #pragma omp barrier
                 MPI_Request req[8];
                 if(tId==0){
                     // treat arrayB as send buffers
@@ -390,7 +407,7 @@ int main(int argc, char *argv[]) {
                               MPI_COMM_WORLD, &req[5]);
                 }
                 // calculate interiors
-                //#pragma omp for
+                #pragma omp for
                 for (int i = 5; i < jblockSize - 5; i++) {
                     for (int j = 5; j < iblockSize - 5; j++) {
                         arrayB[i * iblockSize + j] = (arrayA[i * iblockSize + j] + arrayA[(i - 1) * iblockSize + j] +
@@ -398,7 +415,7 @@ int main(int argc, char *argv[]) {
                                                       + arrayA[i * iblockSize + j - 1] + arrayA[i * iblockSize + j + 1]) / 5;
                     }
                 }
-                //#pragma omp for
+                #pragma omp for reduction(+: progress) 
                 for (int i = 4; i < jblockSize - 4; i++) {
                     for (int j = 4; j < iblockSize - 4; j++) {
                         arrayA[i * iblockSize + j] = (arrayB[i * iblockSize + j] + arrayB[(i - 1) * iblockSize + j] +
@@ -415,17 +432,18 @@ int main(int argc, char *argv[]) {
             if(tId==0)
                 MPI_Allreduce(&progress, &reducedProgress, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-            if (myid == 0)
+            #pragma omp barrier
+            if (tId==0 && myid == 0)
                 iter += miniBatchSize;
             
         } while (reducedProgress >= epsilon);
         
         if (output){
-            if (myid == 0){
+            if (tId==0 && myid == 0){
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start);
                     cout << elapsed.count() << endl;
-                cout << "Iterations: " << iter << endl << endl;
+                cout << myid << " Iterations: " << iter << endl << endl;
             }
         }
 }
